@@ -1,0 +1,398 @@
+
+/* fonte */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, Sans-Serif;
+}
+
+body {
+  padding: 20px;
+  margin: 0;
+  background-color: #fafafa;
+}
+
+div#container {
+  width: 70%;
+  height: 550px;
+  margin: 50% auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  position: relative;
+}
+
+div#card-destaque {
+  width: 50%;
+}
+
+div#card-image > img {
+  max-width: 100%;
+  width: 275px;
+  height: 550px;
+  position: absolute;
+  top: 0;
+}
+
+div#card-image img#image {
+  width: 242px;
+  height: auto;
+  left: 17px;
+  top: 9px;
+}
+
+/* CARD FORM */
+
+div#card-form-container {
+  width: 50%;
+}
+form#formulario {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  display: block;
+  padding: .5rem 1rem 1.5rem;
+}
+
+form#formulario img {
+  width: 170px;
+  margin: 2rem auto;
+  display: block;
+}
+
+form#formulario input {
+  display: block;
+  padding: 15px;
+  width: 100%;
+  font-size: 1rem;
+  background-color: #fafafa;
+  margin: .5rem 0 0;
+  border: 1px solid  #ccc;
+  border-radius: 7px;
+}
+#groupInputPass {
+  position: relative;
+}
+#groupInputPass i {
+  position: absolute;
+  padding: 17px;
+  top: 0;
+  right: 0;
+}
+
+form#formulario a {
+  display: block;
+  margin-top: 1rem;
+  text-decoration: none;
+  text-align: center;
+  color: #304E82;
+}
+
+form#formulario span + a {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+button#btn-entrar {
+  border: none;
+  padding: 10px;
+  color: #fff;
+  display: block;
+  width: 100%;
+  background-color: #AFE1FC;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 7px;
+  margin-bottom: 1rem;
+}
+
+span#barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 2rem;
+}
+span#barra::before,
+span#barra::after {
+  content: "";
+  width: 90%;
+  border-bottom: 1px solid #ccc;
+}
+
+/*CARD TEXT*/
+div#card-text {
+  border: 1px solid #ccc;
+  background-color: #fff;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+div#card-text p {
+  text-align: center;
+  font-size: 1rem;
+}
+div#card-text a {
+  color: #418FBF;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* CARD TEXT APP */
+div#card-text-app {
+  margin-bottom: 1rem;
+}
+div#card-text-app p {
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* CARD IMAGE APP */
+div#card-image-app {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+div#card-image-app img {
+  width: 130px;
+}
+
+/*Desabilitados*/
+form#formulario img + a {
+  display: none;
+}
+form#formulario a + span {
+  display: none;
+}
+form#formulario div + a {
+  display: none;
+}
+
+div#container-lang {
+  display: none;
+}
+
+footer p {
+  display: none;
+}
+
+/* rodapé */
+footer div {
+  width: 70%;
+  margin: 0 auto;
+}
+footer div ul {
+  list-style: none;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+footer div ul li {
+  margin: .5rem;
+  display: inline-block;
+}
+
+footer div ul li a, footer div div p {
+  text-decoration: none;
+  color: #777;
+  font-size: .9rem;
+}
+
+footer div div {
+  clear: both;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+footer div div select {
+  border: none;
+  background-color: transparent;
+  color: #777;
+}
+
+@media (max-width: 800px) {
+  body {
+    padding: 0;
+    margin: 0;
+    background-color: #fff;
+  }
+  div#container-lang {
+    display: flex;
+    margin: 1rem;
+  }
+  div#card-menu i {
+    color: #777;
+  }
+  select#lang {
+    width: 125px;
+    margin: 0 auto;
+    border: none;
+    background-color: transparent;
+    color: #777;
+    font-size: .7rem;
+  }
+  
+  div#container {
+    position: static;
+    display: block;
+    width: 90%;
+    height: auto;
+    margin: 0 auto;
+  }
+  div#card-destaque {
+    display: none;
+  }
+  div#card-form-container {
+    width: 100%;
+  }
+  form#formulario {
+    border: none;
+  }
+  
+  div#card-text {
+    margin: 0;
+    padding: 0;
+  }
+
+  form#formulario #barra {
+    display: none;
+  }
+  form#formulario span + a {
+    display: none;
+  }
+  
+  form#formulario img + a {
+    display: block;
+    padding: 7px;
+    background-color: #0195F7;
+    color: #fff;
+    border-radius: 3.35px;
+    font-size: .9rem;
+    font-weight: bold;
+  }
+  form#formulario a + span {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    column-gap: 1rem;
+    margin: 1rem 0;
+    font-weight: bold;
+    color: #888;
+  }
+  form#formulario a + span::before,
+  form#formulario a + span::after {
+    display: block;
+    width: 100%;
+    content: "";
+    border-top: 1.5px solid #ccc;
+  }
+  
+  form#formulario input {
+    padding: 10px;
+    font-size: .8rem;
+    border-radius: 4px;
+  }
+  div#groupInputPass i {
+    padding: 10px;
+  }
+  form#formulario button#btn-entrar {
+    padding: 8px;
+    font-size: .9rem;
+    border-radius: 4px;
+    margin: 0;
+  }
+
+  div#card-text p {
+    font-size: .9rem;
+    color: #777;
+  }
+  div#card-text p a {
+    color: #63C3FF;
+  }
+  
+  form#formulario div + a {
+    display: block;
+    text-align: right;
+    font-size: .8rem;
+    color: #63C3FF;
+    font-weight: 500;
+    margin: 0 0 1.5rem;
+  }
+
+  form#formulario a + a {
+    display: none;
+  }
+  
+  div#card-text {
+    border: none;
+  }
+  
+  div#card-text-app {
+    display: none;
+  }
+  
+  div#card-image-app {
+    display: none;
+  }
+  
+  /*rodapé*/
+  footer {
+    margin-top: 6rem;
+  }
+  footer div {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: #fafafa;
+  }
+  footer div ul {
+    width: 70%;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  footer div ul li {
+    margin: .3rem;
+  }
+  footer div ul li a {
+    font-size: .8rem;
+  }
+  div#copy {
+    display: none;
+  }
+  footer > p {
+    text-align: center;
+  }
+  footer p {
+    font-size: .8rem;
+    font-weight: bold;
+    display: block;
+  }
+  footer p span {
+    font-size: .7rem;
+    color: #777;
+  }
+}
+
+/*
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background-color: #f8f9fa;
+  border-top: 1px solid #ccc;
+  width: 100%;
+}
+
+footer p {
+  text-align: center;
+  color: #888;
+  font-family: "position";
+  font-size: .9rem;
+}
+
+footer span {
+  font-weight: bold;
+  color: #000;
+}
+*/

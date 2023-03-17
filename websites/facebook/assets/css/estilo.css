@@ -1,0 +1,310 @@
+
+/* fonte */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, Sans-Serif;
+}
+
+#main {
+  background-color: #f1f2f6;
+  display: block;
+  padding: 150px 0;
+}
+
+#container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 95%;
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+img#logo {
+  width: 300px;
+  display: block;
+  margin: 0 0 -.5rem -2rem;
+}
+
+#card-img > p {
+  font-size: 1.5rem;
+  margin-top: 0;
+  margin-right: 150px;
+}
+
+/* Formulario */
+#card-form {
+  width: 100%;
+}
+
+form {
+  background-color: #fff;
+  margin: 0 auto;
+  padding: .5rem 1rem 1rem;
+  border-radius: 7px;
+  box-shadow: 1px 4px 8px #ccc;
+}
+
+form + p {
+  margin: 1.5rem 0;
+  padding: 0;
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
+form + p a {
+  text-decoration: none;
+  font-weight: 500;
+  color: #000;
+}
+
+form input, button {
+  width: 100%;
+  display: block;
+  padding: 13px;
+  margin: 15px 0;
+  border: 1px solid #ccc;
+  font-size: 1.1rem;
+  color: #888;
+  border-radius: 7px;
+}
+
+form input:focus, form button:focus {
+  outline: none;
+}
+
+button#btn-entrar {
+  background-color: #1878F3;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.3rem;
+  padding: 10px;
+}
+
+button#btn-entrar + a {
+  color: #487EC4;
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+span#barra {
+  display: block;
+  border-top: 1px solid #ccc;
+  margin: 1.5rem 0;
+}
+
+button#btn-conta {
+  width: 45%;
+  margin: 0 auto;
+  background-color: #41B82A;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* rodapé*/
+div.container {
+  width: 95%;
+  margin: 1rem auto;
+}
+ul div {
+  display: inline;
+}
+
+ul#nav-first {
+  border-bottom: .5px solid #ccc;
+  display: block;
+  margin: .5rem 0;
+}
+
+ul li {
+  display: inline;
+}
+
+ul li a {
+  text-decoration: none;
+  color: #999;
+  padding: .5rem 0 .5rem .5rem;
+  font-size: .8rem;
+}
+
+#copy {
+  font-size: .8rem;
+  margin: 1rem 0 1rem 10px;
+  color: #999;
+}
+
+span#barra-mobile {
+  display: none;
+}
+img#logo-mobile {
+  display: none;
+}
+a#link-app {
+  display: none;
+}
+#groupInput i, #groupInputPass i {
+  display: none;
+}
+p#link-exclamation {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  p#link-exclamation {
+    display: none;
+    background-color: #E6F2FF;
+    padding: .5rem;
+    font-size: .75rem;
+    border-bottom: 1px solid #ABD0FD;
+    position: relative;
+  }
+  
+  p#link-exclamation.activeExcl {
+    display: block;
+  }
+  
+  p#link-exclamation a {
+    color: #8798B6;
+    text-decoration: none;
+  }
+  
+  a#link-app {
+    display: flex;
+    column-gap: .5rem;
+    color: #627DB4;
+    background-color: #FFFBE2;
+    text-decoration: none;
+    font-size: .9rem;
+    padding: 10px;
+    font-family: "Arial", Sans-Serif;
+  }
+  
+  a#link-app.activeApp {
+    display: none;
+  }
+  
+  a#link-app i {
+    font-size: 2rem;
+  }
+  
+  div#main {
+    background-color: #fff;
+    padding: 0;
+  }
+  
+  #card-img {
+    display: none;
+  }
+  
+  img#logo-mobile {
+    display: block;
+    width: 120px;
+    margin: 0 auto;
+  }
+  
+  form {
+    box-shadow: none;
+  }
+  form + p {
+    display: none;
+  }
+  form input, button {
+    font-size: .9rem;
+    border-radius: 3px;
+  }
+  form input {
+    background-color: #f5f6f8;
+  }
+  
+  #groupInput, #groupInputPass {
+    position: relative;
+  }
+
+  a#icone {
+    color: #aaa;
+  }
+  a#icone.active {
+    color: black;
+  }
+  a#icone i, a#iconeEye i {
+    display: block;
+    font-size: 1rem;
+    position: absolute;
+    padding: 13px;
+    top: 0;
+    right: 0;
+  }
+  
+  button#btn-entrar {
+    font-size: 1rem;
+  }
+  button#btn-entrar + a {
+    font-weight: normal;
+    font-size: .9rem;
+  }
+  button#btn-conta {
+    text-shadow: -.5px -.5px 1px black;
+    padding: 10px;
+  }
+
+  span#barra {
+    display: none;
+  }
+  
+  span#barra-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+    font-size: .7rem;
+    font-weight: 500;
+  }
+  
+  span#barra-mobile::after,
+  span#barra-mobile::before {
+    display: block;
+    content: "";
+    width: 100%;
+    border-top: 1.5px solid #ccc;
+  }
+  
+  /* Rodapé */
+  ul:not(ul#nav-first) {
+    display: none;
+  }
+  ul li {
+    display: block;
+  }
+  
+  ul li:nth-child(n + 1) a {
+    color: #6a949f;
+  }
+  ul li:not(div#card-second li):first-child a {
+    color: #555;
+    font-weight: bold;
+  }
+  
+  ul#nav-first {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+    border-bottom: none;
+    margin-top: 80px;
+  }
+  #nav-first > li {
+    display: none;
+  }
+  
+  p#copy {
+    text-align: center;
+  }
+}
+
