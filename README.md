@@ -6,3 +6,8 @@ Pesca dados de redes sociais através de páginas sociais modificadas usando a t
 
 ### Processo:
 ![main](https://github.com/Olliv3r/dataSocial/blob/main/media/run.jpg)
+
+### Instalação:
+```
+apt update && apt upgrade -y && apt install git proot wget -y
+```

