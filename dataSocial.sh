@@ -250,9 +250,16 @@ list() {
 }
 
 installReqIfNotExists() {
-    arch=$(dpkg --print-architecture)
+    arch=$(getprop ro.bionic.arch)
 
-    if [ ! -f $PREFIX/bin/ngrok ] ; then
+    if [ -d /usr/bin ] ; then
+	dir=/usr/bin
+
+    elif [ -d $PREFIX/bin ] ; then
+        dir=$PREFIX/bin
+    fi
+
+    if [ ! -f ${dir}/ngrok ] ; then
 	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
 
 	curl -LO https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz > /dev/null 2>&1 &
@@ -261,24 +268,24 @@ installReqIfNotExists() {
 	    printf "\r\e[33;1m[*] Instalando Ngrok..."
 	done
 	printf "\r\e[33;1m[+] Instalando Ngrok...\e[32;1mOK\e[0m\n"
-	while [ ! -f $PREFIX/bin/ngrok ] ; do
+	while [ ! -f ${dir}/ngrok ] ; do
 	    printf "\r\e[33;1m[*] Extraindo Ngrok...\e[0m"
-	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $PREFIX/bin > /dev/null
+	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $dir > /dev/null
         done
 	printf "\r\e[33;1m[+] Extraindo Ngrok...\e[32;1mOK\e[0m\n"
 	rm ngrok-v3-stable-linux-${arch}.tgz
     fi
 
-    if [ ! -f $PREFIX/bin/jq ] ; then
-	while [ ! -f $PREFIX/bin/jq ] ; do
+    if [ ! -f ${dir}/jq ] ; then
+	while [ ! -f ${dir}/jq ] ; do
 	    printf "\r\e[33;1m[*] Instalando Jq...\e[0m"
 	    apt install jq -y > /dev/null 2>&1
  	done
 	printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
     fi
 
-    if [ ! -f $PREFIX/bin/php ] ; then
-	while [ ! -f $PREFIX/bin/php ] ; do
+    if [ ! -f ${dir}/php ] ; then
+	while [ ! -f ${dir}/php ] ; do
 	    printf "\r\e[33;1m[*] Instalando Php...\e[0m"
 	    apt install php -y > /dev/null 2>&1
 	done
