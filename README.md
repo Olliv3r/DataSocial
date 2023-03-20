@@ -5,7 +5,7 @@ Pesca dados de redes sociais através de páginas sociais modificadas usando a t
 ![main](https://github.com/Olliv3r/dataSocial/blob/main/media/main.jpg)
 
 ### Escula:
-![main](https://github.com/Olliv3r/dataSocial/blob/main/media/walp.jpg)
+![main](https://github.com/Olliv3r/dataSocial/blob/main/media/wait.jpg)
 ### Capturado:
 ![main](https://github.com/Olliv3r/dataSocial/blob/main/media/dataCaptured.jpg)
 
