@@ -170,16 +170,17 @@ getDataCaptured() {
 }
 
 control() {
-    until [ "$REPLY" == "quit" ] ; do
-	echo -e "\e[32m[?] Digite '\e[33;1mctr+C\e[32m' \e[32m OU '\e[33;1mquit\e[32m' para cancelar OU '\e[33;1mrerun\e[32m' para realizar novamente este ataque";read
+    echo -e "\e[32m[?] Digite '\e[33;1mctr+C\e[32m' \e[32mOU '\e[33;1mquit\e[32m' para cancelar OU '\e[33;1mrerun\e[32m' para realizar novamente este ataque";read
 
-	if [ "$REPLY" == "rerun" ] ; then
-	    rerun
+    if [ "$REPLY" == "rerun" ] ; then
+	rerun
 
-	fi
-    done
+    elif [ "$REPLY" == "quit" ] ; then
+        interruptTwo
 
-    interruptTwo
+    else
+	control
+    fi
 }
 
 get_ip() {
