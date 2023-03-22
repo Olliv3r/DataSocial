@@ -249,14 +249,18 @@ list() {
 }
 
 installReqIfNotExists() {
-    arch=$(getprop ro.bionic.arch)
+    #arch=$(getprop ro.bionic.arch)
 
-    if [ -d /usr/bin ] ; then
-	dir=/usr/bin
+    case "$(dpkg --print-architecture)" in
+	armhf|arm) arch="arm";;
+	
+	*)
+	    echo "[!] Invalid architecture"
+	    exit 1
+    esac
 
-    elif [ -d $PREFIX/bin ] ; then
-        dir=$PREFIX/bin
-    fi
+    [ -d /usr/bin ] && dir=/usr/bin
+    [ -d $PREFIX/bin ] && dir=$PREFIX/bin
 
     if [ ! -f ${dir}/ngrok ] ; then
 	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
@@ -282,6 +286,7 @@ installReqIfNotExists() {
    	        apt install jq -y > /dev/null 2>&1
  	    done
 	    printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
+
 	elif [ -d /usr/bin ] ; then
 	    echo -e "\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
 	    apt-get update && apt-get install jq -yq

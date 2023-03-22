@@ -14,7 +14,7 @@ else if (isset($_SERVER['REMOTE_ADDR'])) {
 
 $arquivo = fopen("ip.txt", "w");
 
-fwrite($arquivo ,"Endereço IP: {$ip}");
+fwrite($arquivo ,"Endereço IP: " . $ip);
 
 fclose($arquivo);
 ?>
