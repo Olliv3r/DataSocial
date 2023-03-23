@@ -85,6 +85,7 @@ interruptTwo() {
 
 listen() {
     clear
+    installReqIfNotExists
 
     if  [ -n "$tunnel" -a "$tunnel" == "ngrok" ] ; then
 	functionGroup
@@ -129,6 +130,7 @@ copyFiles() {
 }
 
 tunnel() {
+    installReqIfNotExists
 
     if [ "$tunnel" == "ngrok" ] ; then
         verifyProot
@@ -331,18 +333,6 @@ if [ -z "$1" ] ; then
     banner
     echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mtente \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara ajuda\e[0m"
     exit 1
-
-elif [ ${#@} -eq 3 -o ${#} -eq 5 ] ; then
-    installReqIfNotExists
-
-elif [ -n "$1" ] ; then
-
-    if [ ${#@} -gt 5 ] ; then
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mUltrapassou o limite de argumentos necessários\e[0m"
-	exit 1
-
-    fi
-
 fi
 
 while [ -n "$1" ] ; do
