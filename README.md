@@ -22,3 +22,8 @@ termux-chroot
 ```
 cd dataSocial && ./dataSocial.sh
 ```
+### Modo interativo
+![main](https://github.com/Olliv3r/dataSocial/blob/main/media/modeInteractive.jpg)
+```
+./dataSocial.sh -i
+```
