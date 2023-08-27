@@ -135,7 +135,7 @@ tunnel() {
         showLinkNgrok
 
     elif [ "$tunnel" == "ssh" ] ; then
-	ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
+	ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
 	sleep 3
 	showLinkSSH
 
