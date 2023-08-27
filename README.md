@@ -6,15 +6,17 @@ Pesca dados de redes sociais através de páginas sociais modificadas usando a t
 
 ### Instalação:
 ```
-apt update && apt upgrade -y && apt install git proot curl -y && cd $HOME && git clone https://github.com/Olliv3r/dataSocial && cd dataSocial && ls && ./dataSocial.sh
+apt update && apt upgrade -y && apt install git proot curl -y && cd $HOME && git clone https://github.com/Olliv3r/dataSocial && cd dataSocial && bash install.sh && ./dataSocial.sh --help
 ```
 
 ### Obs! Resoluçâo do erro
-Execute o programa na shell proot, caso contrário ocorrerá links nulos:
+Execute o programa na shell proot, chroot ou outro, caso contrário pode mostrar links nulos do tunel:
 ```
 termux-chroot
 ```
 ```
+
+Use o modo interativo caso queira:
 cd dataSocial && ./dataSocial.sh -i # Modo interativo
 ```
 ### Processo:

