@@ -14,9 +14,8 @@ Execute o programa na shell proot, chroot ou outro, caso contrário pode mostrar
 ```
 termux-chroot
 ```
-```
-
 Use o modo interativo caso queira:
+```
 cd dataSocial && ./dataSocial.sh -i # Modo interativo
 ```
 ### Processo:
