@@ -259,9 +259,32 @@ version() {
 # Percorre a uma lista
 list() {
     array="$1"
-    echo
+    count=1
+    echo "All"
     for index in $array ; do
-	echo -e "\e[0m\e[31m$index\e[0m"
+	echo -e "\e[0m$count => \e[0m\e[32;2m$index\e[0m"
+	count=$((count +1))
+    done
+}
+
+# Checa pacotes necessários
+checkReq() {
+    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet")
+
+    [ -d $PREFIX/bin ] && dir=$PREFIX/bin # Termux
+    [ -d /usr/bin ] && dir=/usr/bin 	  # Proot, Chroot or others
+
+    for package in ${listReq[*]} ; do
+	if [ "$package" == "openssh" ] ; then
+	    package="ssh"
+
+	fi
+
+	if [ ! -f $dir/$package ] ; then
+	    echo -e "\e[0mPackage required not found => \e[0m\e[33;2m$package\e[0m"
+	    echo -e "\e[0mTry run => \e[0m\e[32;2mbash ./install.sh\e[0m"
+	    exit 1
+	fi
     done
 }
 
@@ -577,7 +600,7 @@ interactiveMode() {
 
 if [ -z "$1" ] ; then
     banner
-    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mError, try \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mfor more help\e[0m"
+    echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError, try -h,--help for more help\e[0m"
     exit 0
 fi
 
@@ -596,7 +619,7 @@ while [ -n "$1" ] ; do
 	    shift
 
 	    if [ -z "$1" ] ; then
-		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mSpecify the service\e[0m"
+		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mSpecify the service\e[0m"
 		exit 1
 	    fi
 
@@ -609,7 +632,7 @@ while [ -n "$1" ] ; do
 	    shift
 
 	    if [ -z "$1" ] ; then
-		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mSpecify the tunnel\e[0m"
+		echo -e "\e[0m[\e[31;1m!\e[0m] Specify the tunnel\e[0m"
 		exit 1
 	    fi
 
@@ -620,18 +643,19 @@ while [ -n "$1" ] ; do
 	    interactiveMode;;
 
 	*)
-	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mInvalid option: \e[33;1m$1\e[0m" && exit 1;;
+	    echo -e "\e[0m[\e[31;1m!\e[0m] Invalid option: $1\e[0m" && exit 1;;
     esac
     shift
 done
 
 if [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    banner && listen && getDataCaptured
+    checkReq && banner && listen && getDataCaptured
 
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    banner && listen && tunnel && getDataCaptured
+    checkReq && banner && listen && tunnel && getDataCaptured
 
 else
-    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mError processing command, try: \e[33;1m-h\e[31;1m, \e[33;1m--help \e[31;1mfor more details\e[0m"
+    checkReq
+    echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError processing command, try: -h,--help for more details\e[0m"
     exit 1
 fi
