@@ -640,6 +640,7 @@ while [ -n "$1" ] ; do
 	    tunnel="$1"
 	    ;;
         -i | --interactive)
+	    checkReq
 	    interactiveMode;;
 
 	*)
