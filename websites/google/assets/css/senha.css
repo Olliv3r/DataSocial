@@ -1,0 +1,186 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Segoe UI, Sans-Serif;
+}
+body {
+  background-color: #FFF;
+}
+a {
+  text-decoration: none;
+  color: #4a7ceb;
+  font-size: 0.9rem;
+}
+.container {
+  width: 90%;
+  margin: 0 auto;
+}
+form {
+  padding: 20px 30px;
+}
+.logo {
+  margin: 40px 0 0;
+}
+.logo {
+  margin-bottom: 10px;
+}
+.logo img {
+  width: 80px;
+  margin: 0 auto;
+  display: block;
+}
+.title {
+  text-align: center;
+  padding: 5px 0;
+  color: #444;
+}
+
+.title h2 {
+  font-weight: 400;
+}
+.text {
+  text-align: center;
+  margin-top: -30px;
+}
+
+.text p a {
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  padding: 2.5px 5px;
+  display: inline-block;
+  text-decoration: none;
+  color: #555;
+}
+/* Formulario */
+.form-group {
+  margin: 5px 0;
+  position: relative;
+}
+
+.form-group label {
+  top: calc(60px - 15px);
+  left: 10px;
+  position: absolute;
+  transition: all linear 0.1s;
+  padding: 0 3px;
+  color: #555;
+  pointer-events: none;
+}
+
+.senha input[type="checkbox"] {
+  margin-right: 10px;
+  margin-top: 5px;
+  accent-color: #4a7ceb;
+}
+
+.form-group input {
+  margin-top: 30px;
+  padding: 15px 10px;
+  outline: none;
+  font-size: 1rem;
+  border: 1px solid #f1f1f1;
+  border-radius: 5px;
+  width: 100%;
+  transition: all linear 0.1s;
+  background-color: transparent;
+}
+.form-group input:hover {
+  border-color: #4a7ceb;
+}
+.form-group input:hover + label[for="senha"],
+.form-group label[for="senha"].active {
+  top: 22px;
+  background-color: #fff;
+  color: #4a7ceb;
+  font-size: 0.85rem;
+}
+
+.form-group + p {
+  margin: 5px 0;
+}
+.form-group + p a {
+  /* text-decoration: none; */
+  /* color: #4a7ceb; */
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-top: 5px;
+  display: inline-block;
+}
+form p {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 40px;
+  line-height: 1.3rem;
+}
+form p a {
+  /* text-decoration: none; */
+  font-weight: 700;
+  /* color: #4a7ceb; */
+}
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 50px;
+}
+.button-group button:first-child {
+  background-color: #FFF;
+  color: #4a7ceb;
+}
+.button-group button {
+  background-color: #4a7ceb;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+}
+.box {
+  position: relative;
+  height: 100vh;
+}
+
+/* Rodape */
+
+.links {
+  list-style: none;
+  position: absolute;
+  bottom: 0;
+  padding-bottom: 10px;
+}
+.links li {
+  display: inline;
+}
+.links li:nth-child(n+2) {
+  margin-left: 50px;
+}
+.links a {
+  color: #555;
+  font-size: 0.85rem;
+}
+
+@media (min-width: 720px) {
+  .container {
+    width: 50%;
+  }
+  .box {
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  form {
+    border: 1px solid #f1f1f1;
+    margin: 25px;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .links {
+    position: static;
+    margin: 0 auto;
+    width: 90%;
+  }
+
+}

