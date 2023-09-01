@@ -572,6 +572,15 @@ menu() {
     exit 0
 }
 
+total_services() {
+    count=0
+    for index in ./websites/*; do
+	count=$((count +1)); 
+    done
+    
+    echo $count
+}
+
 banner_two() {
 
     version=$(grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr -d " a-zãV")
@@ -579,7 +588,9 @@ banner_two() {
 
     echo -e "\n\n"
     toilet -f slant dataSocial --metal
-    echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m2\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
+    count=1
+    total=$(for index in ./websites/*;do count=$((count +1)); done)
+    echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m$(total_services)\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
     echo -e "\n\n"
 }
 
