@@ -6,7 +6,7 @@ Pesca dados de redes sociais através de páginas sociais modificadas usando a t
 
 ### Instalação:
 ```
-apt update && apt upgrade -y && apt install git proot curl -y && cd $HOME && git clone https://github.com/Olliv3r/dataSocial && cd dataSocial && bash install.sh && ./dataSocial.sh --help
+apt update && apt upgrade -y && apt install git proot curl -y && cd $HOME && git clone https://github.com/Olliv3r/dataSocial && cd dataSocial && bash install.sh && termux-chroot ./dataSocial.sh --help
 ```
 
 ### Obs! Resoluçâo do erro
@@ -16,7 +16,7 @@ termux-chroot
 ```
 Use o modo interativo caso queira:
 ```
-cd dataSocial && ./dataSocial.sh -i # Modo interativo
+cd dataSocial && termux-chroot ./dataSocial.sh -i # Modo interativo
 ```
 ### Processo:
 ![main](https://github.com/Olliv3r/dataSocial/blob/main/media/process.jpg)
