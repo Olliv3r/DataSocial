@@ -2,7 +2,7 @@
 #
 #
 
-listReq=("ssh" "tar" "php" "jq" "curl" "tar" "toilet" "figlet" "ssh" "jnzip")
+listReq=("ssh" "tar" "php" "jq" "curl" "tar" "toilet" "figlet" "ssh" "unzip" "proot")
 
 installPackage() {
     echo -e "\e[0m\e[33;1m[*] Installing packages...\e[0m"
