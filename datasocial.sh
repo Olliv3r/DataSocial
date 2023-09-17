@@ -487,10 +487,10 @@ echo -e "\e[34m
 ### Ajuda
 
 helper() {
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n\t-h, --help\tShow  this help screen and exit\n\t-v, --version\tShows the current version of the program\n\t--add-token YOUR TOKEN\n\t\t\tAdd access token\n\t-S, --services\tShow all services\n\t-T, --tunnels\tShow all tunnels\n\t-s, --service\tUse a service\n\t-l, --listen\tEnable listenning on localhost\n\t-t, --tunnel\tDefines a tunnel\n\t-i, \n\t--interactive\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n\t${0} --service facebook --listen\nTunnel:\n\t${0} --service facebook --listen --tunnel ngrok"
+    space="  "
+    echo -e "Uso: $(basename "$0") [OPÇÔES]\n$space-h, --help\t\tShow  this help screen and exit\n$space-v, --version\t\tShows the current version of the program\n$space--add-token TOKEN\tAdd access token\n$space-S, --services\tShow all services\n$space-T, --tunnels\t\tShow all tunnels\n$space-s, --service\t\tUse a service\n$space-l, --listenServer\tEnable listenning on localhost\n$space-t, --tunnel\t\tDefines a tunnel\n$space-i, \n$space--interactive\t\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n$space${0} -s facebook -l\n\nTunnel:\n$space${0} -s facebook -l -t ngrok"
     exit 0
 }
-
 
 ### Versão
 
