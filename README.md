@@ -18,7 +18,7 @@ bash ./install.sh # Instalar requisitos
 ### Obs! Resoluçâo do erro
 Execute o programa na shell proot, chroot ou outro, caso contrário pode mostrar links nulos no tunel:
 ```
-termux-chroot
+termux-chroot ./datasocial.sh --help
 ```
 Use o modo interativo caso queira:
 ```

