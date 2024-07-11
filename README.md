@@ -8,7 +8,8 @@ Pesca dados de redes sociais através de páginas sociais modificadas usando a t
 
 Atualizar o repositório e instalar o git:
 ```
-apt update &&:apt upgrade -y && apt install git -y ```
+apt update &&:apt upgrade -y && apt install git -y
+```
 
 Clonar o repositório e instalar dependências:
 ```
