@@ -42,12 +42,14 @@ uninstall() {
 			fi
 
 			echo -e "\n\e[0mUninstalling $package package...\e[0m"
-			apt autoremove $package -y
+			apt purge $package -y
 		
 		else
 			echo -e "\n\e[0mThe '\e[1;33m$package\e[0m' package has already been uninstalled before."
 		fi
     done
+
+    apt autoremove && apt autoclean
     
     echo -e "\n\e[0m\e[32;1m[+] Ininstalling packages...OK\e[0m"
 }
