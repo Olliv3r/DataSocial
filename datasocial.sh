@@ -527,20 +527,17 @@ list() {
 checkReq() {
     listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet" "unzip" "proot")
 
-    [ -d $PREFIX/bin ] && dir=$PREFIX/bin # Termux
-    [ -d /usr/bin ] && dir=/usr/bin 	  # Proot, Chroot or others
-
     for package in ${listReq[*]} ; do
-	if [ "$package" == "openssh" ] ; then
-	    package="ssh"
+		if [ "$package" == "openssh" ] ; then
+	   		package="ssh"
 
-	fi
+		fi
 
-	if [ ! -f $dir/$package ] ; then
-	    echo -e "\e[0mPackage required not found => \e[0m\e[33;2m$package\e[0m"
-	    echo -e "\e[0mTry run => \e[0m\e[32;2mbash ./install.sh\e[0m"
-	    exit 1
-	fi
+		if [ -z "$(dpkg -l | grep $package)" ] ; then
+	    	echo -e "\e[0mPackage required not found => \e[0m\e[33;2m$package\e[0m"
+	    	echo -e "\e[0mTry run => \e[0m\e[32;2mbash ./setup.sh --install\e[0m"
+	    	exit 1
+		fi
     done
 }
 

@@ -1,0 +1,27 @@
+t=2024-07-11T01:08:12+0000 lvl=warn msg="failed to get home directory, using $HOME inste[Wed Jul 10 21:08:38 2024] 127.0.0.1:55732 Accepted
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55732 [200]: GET /
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55732 Closing
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55734 Accepted
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55734 [200]: GET /assets/css/estilo.css
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55734 Closing
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55735 Accepted
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55735 [200]: GET /assets/img/facebook.svg
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55735 Closing
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55736 Accepted
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55736 [200]: GET /assets/js/script.js
+[Wed Jul 10 21:08:38 2024] 127.0.0.1:55736 Closing
+[Wed Jul 10 21:08:39 2024] 127.0.0.1:55740 Accepted
+[Wed Jul 10 21:08:39 2024] 127.0.0.1:55740 [404]: GET /favicon.ico - No such file or directory
+[Wed Jul 10 21:08:39 2024] 127.0.0.1:55740 Closing
+[Wed Jul 10 21:08:58 2024] 127.0.0.1:55742 Accepted
+[Wed Jul 10 21:08:58 2024] 127.0.0.1:55742 [302]: POST /src/captura.php
+[Wed Jul 10 21:08:58 2024] 127.0.0.1:55742 Closing
+11T01:08:38+0000 lvl=info msg="join connections" obj=join id=66c86543875f l=127.0.0.1:5555 r=[2804:1e90:1280:c300:4920:1e23:15f1:b2fa]:51348
+t=2024-07-11T01:08:38+0000 lvl=info msg="join connections" obj=join id=8a79cdd64a74 l=127.0.0.1:5555 r=[2804:1e90:1280:c300:4920:1e23:15f1:b2fa]:51348
+t=2024-07-11T01:08:38+0000 lvl=info msg="join connections" obj=join id=8a3221e51bd3 l=127.0.0.1:5555 r=[2804:1e90:1280:c300:4920:1e23:15f1:b2fa]:51348
+t=2024-07-11T01:08:39+0000 lvl=info msg="join connections" obj=join id=0d01535d60fc l=127.0.0.1:5555 r=[2804:1e90:1280:c300:4920:1e23:15f1:b2fa]:51348
+t=2024-07-11T01:08:58+0000 lvl=info msg="join connections" obj=join id=f8b3692f3e7c l=127.0.0.1:5555 r=[2804:1e90:1280:c300:4920:1e23:15f1:b2fa]:51348
+t=2024-07-11T01:09:10+0000 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+t=2024-07-11T01:09:10+0000 lvl=info msg="session closing" obj=tunnels.session err=nil
+t=2024-07-11T01:09:10+0000 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=4b27755daeb0 err="reconnecting session closed"
+t=2024-07-11T01:09:10+0000 lvl=info msg="no more state changes" obj=tunnels.session
