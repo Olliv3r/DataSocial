@@ -19,14 +19,26 @@ cd $HOME;git clone https://github.com/Olliv3r/DataSocial;cd DataSocial;bash ./se
 > [!NOTE]
 > Execute o programa numa shell proot, chroot ou outro ambiente diferente de *termux*, caso contrário pode mostrar links nulos do tunel:
 
+#### Exemplo:
+
+Entrar no ambiente `termux-chroot`:
+```
+termux-chroot
+```
+
+Executar no ambiente `termux-chroot`:
+```
+./dataaocial.sh
+```
+
 ### Ajuda
 Modo de opçôes:
 ```
-termux-chroot ./datasocial.sh --help
+./datasocial.sh --help
 ```
 Use o modo interativo:
 ```
-termux-chroot ./datasocial.sh -i
+./datasocial.sh -i
 ```
 
 ### Desinstalação:
@@ -36,4 +48,4 @@ Caso queira desinstalar todos os programas que o *--install* instalou, basta usa
 ### Teste:
 ![main](https://github.com/Olliv3r/DataSocial/blob/main/media/process.jpg)
 
-@silva_olie, boa sorte :)!
+boa sorte :)!
