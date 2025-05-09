@@ -1,1 +1,0 @@
-Falta criar o modo interativo com prompt facilitado
