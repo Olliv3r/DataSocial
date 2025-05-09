@@ -14,9 +14,46 @@ listReq=(
   "ssh" 
   "unzip"
   "proot"
-  "termux-utils" 
+  "ncurses-utils" 
   "cloudflared"
 )
+
+install_ngrok() {
+    local uname_arch
+    uname_arch=$(uname -m)
+
+    case "$uname_arch" in
+        x86_64)
+            arch="amd64"
+            ;;
+        i386|i686)
+            arch="386"
+            ;;
+        aarch64|arm64)
+            arch="arm64"
+            ;;
+        armv7l|armv6l)
+            arch="arm"
+            ;;
+        *)
+            echo "Arquitetura desconhecida: $uname_arch"
+            return 1
+            ;;
+    esac
+
+    local url="https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
+    
+    echo "Baixando ngrok para arquitetura $arch..."
+    curl -sSL "$url" -o ngrok.tgz || { echo "Erro ao baixar ngrok."; return 1; }
+
+    echo "Extraindo ngrok..."
+    tar -xzf ngrok.tgz || { echo "Erro ao extrair ngrok."; return 1; }
+    chmod +x ngrok
+    mv ngrok bin
+
+    rm ngrok.tgz
+    echo "ngrok instalado com sucesso."
+}
 
 install() {
   echo -e "\e[0m\e[33;1m[*] Installing packages...\e[0m"
@@ -40,6 +77,8 @@ install() {
   done
     
   echo -e "\n\e[0m\e[32;1m[+] Installing packages...OK\e[0m"
+
+  install_ngrok
 }
 
 uninstall() {

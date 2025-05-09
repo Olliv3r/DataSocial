@@ -2,7 +2,7 @@
 Pesca dados de redes sociais através de páginas sociais modificadas usando a técnica phishing de engenharia social
 
 ### DataSocial
-![main](https://github.com/Olliv3r/DataSocial/blob/main/media/modeInteractive.jpg)
+![main](https://github.com/Olliv3r/DataSocial/blob/main/media/main.jpg)
 
 ### Instalação:
 
@@ -46,6 +46,6 @@ Caso queira desinstalar todos os programas que o *--install* instalou, basta usa
 
 
 ### Teste:
-![main](https://github.com/Olliv3r/DataSocial/blob/main/media/process.jpg)
+![main](https://github.com/Olliv3r/DataSocial/blob/main/media/localhost.jpg)
 
 boa sorte :)!

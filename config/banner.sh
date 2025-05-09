@@ -24,3 +24,16 @@ showBanner() {
                  ' .  '   Site: ${f}https://toolmuxapp.pythonanywhere.com${w}
 "
 }
+
+showBannerInteractive() {
+	clear
+	echo -e "${red}     ____        _        ____             _      _ "
+	echo -e "${red}    |  _ \  __ _| |_ __ _/ ___|  ___   ___| | __ (_)"
+	echo -e "${red}    | | | |/ _\` | __/ _\` \___ \ / _ \ / __| |/ / | |"
+	echo -e "${red}    | |_| | (_| | || (_| |___) | (_) | (__|   < _| |"
+	echo -e "${red}    |____/ \__,_|\__\__,_|____/ \___/ \___|_|\_(_)_|"
+	echo -e "${reset}"
+	echo -e "${cyan}             Welcome to DataSocial Framework"
+	echo -e "${cyan}              Type 'help' for commands"
+	echo -e "${reset}"
+}
