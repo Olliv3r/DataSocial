@@ -209,6 +209,7 @@ checkAuthAccount() {
 	fi
 }
 
+# Verifica a existencia de um executável
 checkExecutable() {
 	local executable="$1"
 	local dirname="$2"
@@ -269,7 +270,7 @@ listenServerLocalhost() {
 
 	killAllProcess
 
-	php -S "$host:$port" -t "$www" > $BASE_DIR/logs/php.log 2>&1 & echo $! > $BASE_DIR/pids/php.pid
+	php -S "$host:$port" -t "$BASE_DIR/$www" > $BASE_DIR/logs/php.log 2>&1 & echo $! > $BASE_DIR/pids/php.pid
 	link=$(waitTunnelLink "$BASE_DIR/logs/php.log" "http://[-1-9a-z:]*")
 	showTunnelLink "localhost" "$link"
 }
