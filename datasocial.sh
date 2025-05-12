@@ -82,6 +82,7 @@ source $BASE_DIR/config/st.sh
 source $BASE_DIR/config/banner.sh
 source $BASE_DIR/config/help.sh
 source $BASE_DIR/config/version.sh
+source $BASE_DIR/config/msg.sh
 
 # Configurações de rede e diretórios
 host="localhost"
@@ -121,14 +122,15 @@ trap cleanExit INT
 # Finaliza processos em segundo plano, exibe mensagem de encerramento
 # (se não estiver em modo silencioso) e sai com código 0.
 cleanExit() {
-	echo -e "\n\n${red}Encerrando o programa...${reset}\n"
+	echo -e "\n"
+	msg "err" "Encerrando o programa..." "is_prefix"
 	removeFiles
 	killAllProcess
 	tput cnorm
 	exit 0
 }
 
-# Remove o diretório 'www' se ele existir (limpeza antes de iniciar novo serviço)
+# Remove o diretório 'www' se ele existir (limpeza antes sde iniciar novo serviço)
 removeFiles() {
 	[ -d "$BASE_DIR/$www" ] && rm "$BASE_DIR/$www" -rf
 }
@@ -157,7 +159,7 @@ copyFiles() {
 
 	# Verificação extra
 	if ! checkST "services" "$serviceSelected"; then
-		echo -e "${red}Serviço $serviceSelected inválido.${reset}"
+		msg "err" "Serviço $serviceSelected inválido." "is_prefix"
 		exit 1
 	fi
 	
@@ -193,18 +195,18 @@ checkAuthAccount() {
 			ngrok)
 				# Verifica Ngrok
 				if ! cat $HOME/.config/ngrok/ngrok.yml > /dev/null 2>&1; then
-					echo -e "${red}[!] Configure o ngrok com a chave da sua conta antes de usá-lo.${reset}"
+					msg "err" "Configure o ngrok com a chave da sua conta antes de usá-lo." "is_prefix"
 				fi
 				;;
 
 			ssh)
 				# Verifica SSH
-				if [ ! -f $HOME/.ssh/id_rsa ] || [ ! -f $HOME/.ssh/id_rsa.pub ] ; then
-					echo -e "${red}[!] Gere uma chave SSH com 'ssh-keygen' antes de usar o tunnel SSH (localhost.run).${reset}"
+				if [ -z "$(find $HOME/.ssh -type f -name 'id_*' ! -name '*.pub')" ] ; then
+					msg "err" "Gere uma chave SSH com 'ssh-keygen' antes de usar o tunnel SSH (localhost.run)." "is_prefix"
 				fi
 				;;
 			*)
-				echo -e "${red}Túnel inválido.${reset}";;
+				msg "err" "Túnel inválido." "is_prefix";;
 		esac
 	fi
 }
@@ -258,17 +260,19 @@ listenServerLocalhost() {
 	local serviceSelected="$1"
 
 	if ! checkEnvironmentProot; then
-		echo -e "${red}[!]${reset} Ambiente Proot não detectado. Certifique-se de que o Proot está instalado e configurado corretamente."
+		msg "err" "Ambiente Proot não detectado. Certifique-se de que o Proot está instalado e configurado corretamente." "is_prefix"
 		exit 1
 	fi
 
 	if ! checkST "services" "$serviceSelected"; then
-		echo -e "${red}Serviço ${yellow}$serviceSelected ${red}inválido.${reset}"
+		msg "err" "Serviço $serviceSelected inválido." "is_prefix"
 	fi
 
 	copyFiles "$serviceSelected"
 
 	killAllProcess
+
+	msg "info" "URLs para enviar para o alvo:\n" "is_prefix"
 
 	php -S "$host:$port" -t "$BASE_DIR/$www" > $BASE_DIR/logs/php.log 2>&1 & echo $! > $BASE_DIR/pids/php.pid
 	link=$(waitTunnelLink "$BASE_DIR/logs/php.log" "http://[-1-9a-z:]*")
@@ -285,7 +289,7 @@ waitTunnelLink() {
 	local log_file="$1"
 	local regex="$2"
 	local link=""
-
+	
 	for i in {1..15}; do
 		link=$(grep -oP "$regex" "$log_file")
 
@@ -308,26 +312,26 @@ showTunnelLink() {
 	local tsSelected="$1"
 	local link="$2"
 
-	if [ $silentKey -eq 0 ]; then
+	if [ $silentKey -eq 0 ]; then	
 		if [ -z "$link" ]; then
 			case "$tsSelected" in
 				"localhost")
-					echo -e "${red}[x]${reset} Nenhum link localhost foi gerado. Verifique se o servidor foi iniciado corretamente.";;
+					msg "err" "Nenhum link localhost foi gerado. Verifique se o servidor foi iniciado corretamente." "is_prefix";;
 				ngrok)
-					echo -e "${red}[x]${reset} Link do ngrok vazio. Verifique se a chave está configurada e o serviço está disponível.";;
+					msg "err" "Link do ngrok vazio. Verifique se a chave está configurada e o serviço está disponível." "is_prefix";;
 				ssh)
-					echo -e "${red}[x]${reset} Link SSH ausente. Verifique a conexão com localhost.run.${reset}";;
+					msg "err" "Link SSH ausente. Verifique a conexão com localhost.run." "is_prefix";;
 				cloudflared)
-					echo -e "${red}[x]${reset} Cloudflared não conseguiu gerar um endereço público.";;					
+					msg "err" "Cloudflared não conseguiu gerar um endereço público." "is_prefix";;					
 				*)
-					echo -e "${red}[x]${reset}Túnel desconhecido ou o link não encontrado.";;
+					msg "err" "Túnel desconhecido ou o link não encontrado." "is_prefix";;
 			esac
 			
 		else
 			if [ "$tsSelected" == "localhost" ]; then
-				echo -e "${green}[+]${reset} Local: ${yellow}$link${reset}"
+				msg "ok" "Local: $(msg "warn" "$link")" "is_prefix"
 			else
-				echo -e "${green}[+]${reset} Público: ${yellow}$link${reset}"
+				msg "ok" "Público: $(msg "warn" "$link")" "is_prefix"
 			fi
 		fi
 	fi
@@ -342,7 +346,7 @@ listenServerPublic() {
 	local tunnelSelected="$1"
 
 	if ! checkST "tunnels" "$tunnelSelected"; then
-		echo -e "${red}Túnel $tunnelSelected inválido.${reset}"
+		msg "err" "Túnel $tunnelSelected inválido." "is_prefix"
 		exit 1
 	fi
 
@@ -361,13 +365,13 @@ listenServerPublic() {
 			;;
 			
 		cloudflared)
-			cloudflared tunnel --url http://$host:$port > $BASE_DIR/logs/cloudflared.log 2>&1 & echo $! > $BASE_DIR/pids/cloudflared.pid
+			$BASE_DIR/bin/cloudflared tunnel --url http://$host:$port > $BASE_DIR/logs/cloudflared.log 2>&1 & echo $! > $BASE_DIR/pids/cloudflared.pid
 
 			link=$(waitTunnelLink "$BASE_DIR/logs/cloudflared.log" "https://\S*trycloudflare.com")
 			;;
 			
 		*)
-			echo -e "${red}Túnel não existe.${reset}"
+			msg "err" "Túnel não existe." "is_prefix"
 			exit 1
 			;;
 	esac
@@ -455,7 +459,8 @@ listServices() { listST "services"; }
 listTunnels () { listST "tunnels"; }
 
 printModuleInfo() {	
-	echo -e "\n${reset}Module options (service/${selectedService:-No service}):\n"
+
+	msg "reset" "\nModule options (service/${selectedService:-No service}):\n"
 	
 	printf "  %-15s %-20s %-10s %-s\n" "Name" "Current Setting" "Required" "Description"
 	printf "  %-15s %-20s %-10s %-s\n" "----" "------- -------" "--------" "-----------"
@@ -471,12 +476,13 @@ interactiveMenu() {
 
 	while true; do
 		if [[ -n "$selectedService" ]]; then
-			prompt="dsf service($selectedService) > "
+			prompt="dsf service(${selectedService}) > "
 		else
 			prompt="dsf > "
 		fi
-	
-		read -e -a cmd_parts -p "$(echo -e "$prompt")"
+
+		
+		read -e -a cmd_parts -p "$prompt"
 
 		cmd="${cmd_parts[0]}"
 		arg="${cmd_parts[1]}"
@@ -494,7 +500,7 @@ interactiveMenu() {
 					services) listST "services";;
 					tunnels) listST "tunnels";;
 					options) printModuleInfo;;
-					*) echo -e "\n${reset}Commands = services - tunnels - options ?${reset}\n";;
+					*) msg "warn" "\nCommands = services - tunnels - options ?\n";;
 				esac
 				;;
 				
@@ -503,16 +509,16 @@ interactiveMenu() {
 					if checkST "services" "$target"; then
 						selectedService="$target"
 					else
-						echo "Serviço não encontrado."
+						msg "warn" "\nServiço não encontrado.\n"
 					fi
 				else
-					echo "Commands = service - help ?"
+					msg "warn" "\nCommands = service - help ?\n"
 				fi
 				;;
 
 			set)
 				if [[ -z "$selectedService" ]]; then
-					echo "Selecione um serviço antes de definir qualquer configuração."
+					msg "warn" "\nSelecione um serviço antes de definir qualquer configuração.\n"
 					continue
 				fi
 
@@ -521,22 +527,22 @@ interactiveMenu() {
 						if checkExecutable "$target" "$BASE_DIR/bin" || checkExecutable "$target" "$PREFIX/bin"; then
 							selectedTunnel="$target"
 						else
-							echo "Túnel não existe."
+							msg "warn" "\nTúnel não existe.\n"
 							continue
 						fi
 					else
-						echo "Túnel não encontrado."
+						msg "warn" "\nTúnel não encontrado.\n"
 					fi
 					
 				elif [[ "$arg" == "silent" && -n "$target" ]]; then
 					case "$target" in
 						on) silentKey=1;;
 						off) silentKey=0;;
-						*) echo "Commands = help - ?";;
+						*) msg "warn" "\nCommands = help - ?\n";;
 					esac
 					
 				else
-					echo "Commands = tunnel - help ?"
+					msg "warn" "\nCommands = tunnel - help ?\n"
 				fi
 				;;
 
@@ -547,13 +553,13 @@ interactiveMenu() {
 					listenServerLocalhost "$selectedService"
 					listenServerPublic "$selectedTunnel" && getData
 				else
-					echo "Erro ao processar o comando."
+					msg "err" "\nErro ao processar o comando.\n"
 				fi
 				;;
 				
 			exit | quit) break;;
 			
-			*) echo "Commands = help - ?";;
+			*) msg "warn" "\nCommands = help - ?\n";;
 		esac
 	done
 }
@@ -572,7 +578,7 @@ while [ -n "$1" ]; do
 			# Verifique se o token foi fornecido e grava a achave
 			
 			if [ -z "$1" ]; then
-				echo "Precisa do token."
+				msg "warn" "Precisa do token." "is_prefix"
 				exit 1
 			fi
 			
@@ -585,7 +591,7 @@ while [ -n "$1" ]; do
 
 			# Verifica se o e-mail foi fornecido e gera a chave SSH
 			if [ -z "$1" ]; then
-				echo "Precisa de um e-mail válido."
+				msg "warn" "Precisa de um e-mail válido." "is_prefix"
 				exit 1
 			fi
 
@@ -598,7 +604,8 @@ while [ -n "$1" ]; do
 
 			# Verifica se o serviço foi fornecido e seleciona o serviço para escutar
 			if [ -z "$1" ]; then
-				echo "Precisa de um serviço"
+				echo
+				msg "warn" "Precisa de um serviço" "is_prefix"
 				exit 1
 			fi
 
@@ -611,7 +618,8 @@ while [ -n "$1" ]; do
 
 			# Verifica se o túnel foi fornecido e seleciona o túnel
 			if [ -z "$1" ] ; then
-				echo "Precisa de um tunnel"
+				echo
+				msg "warn" "Precisa de um tunnel" "is_prefix"
 				exit 1
 			fi
 
@@ -627,7 +635,8 @@ while [ -n "$1" ]; do
 		# --test) echo "base: $BASE_DIR1";;
 		*) 
 			# Caso a opção fornecida não seja válida
-			echo "Opção $1 inválida!"
+			echo
+			msg "err" "Opção $1 inválida." "is_prefix"
 			exit 1;;
 	esac
 
