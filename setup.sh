@@ -14,7 +14,7 @@ source $BASE_DIR/config/msg.sh
 # Pacotes necessários
 required_packages=("openssh-server" "tar" "php" "jq" "curl" "unzip" "ncurses-bin")
 # Pacotes essênciais
-essential_packages=("tar" "ncurses-bin")
+essential_packages=("tar" "curl" "ncurses-bin")
 
 # Instalador do Ngrok:
 install_ngrok() {
@@ -105,14 +105,28 @@ install() {
 	msg "info" "Instalando pacotes..."
 	
   	for package in "${required_packages[@]}"; do
-    	if ! dpkg -s "$package" &> /dev/null; then
-    		msg "info" "Instalando '$package'..."
-    		apt install "$package" -yq || {
-    			msg "err" "Falha ao tentar instalar o pacote '$package'."
+		if [ -d "$PREFIX" ] || [ -d "/data/data/com.termux/files/home" ]; then
+			case "$package" in
+				openssh-server) original_package="openssh";;
+				ncurses-bin) original_package="ncurses-utils";;
+				*) original_package=$package;;
+			esac
+		else
+			case "$package" in
+				openssh) original_package="openssh-server";;
+				ncurses-utils) original_package="ncurses-bin";;
+				*) original_package=$package;;
+			esac
+		fi
+  		
+    	if ! dpkg -s "$original_package" &> /dev/null; then
+    		msg "info" "Instalando '$original_package'..."
+    		apt install "$original_package" -yq || {
+    			msg "err" "Falha ao tentar instalar o pacote '$original_package'."
     			continue
     		}
     	else
-	  		msg "warn" "O pacote '$package' já existe no sistema."
+	  		msg "warn" "O pacote '$original_package' já existe no sistema."
 		fi
   	done
     
@@ -124,22 +138,36 @@ uninstall() {
 	msg "info" "Removendo pacotes..."
 
   	for package in "${required_packages[@]}" ; do
-		if [[ " ${essential_packages[*]} " == *" $package "* ]]; then
-			msg "err" "Pacote essêncial detectado, ignorando remoção de $package."
+ 		if [ -d "$PREFIX" ] || [ -d "/data/data/com.termux/files/home" ]; then
+ 			case "$package" in
+ 				openssh-server) original_package="openssh";;
+ 				ncurses-bin) original_package="ncurses-utils";;
+ 				*) original_package=$package;;
+ 			esac
+ 		else
+ 			case "$package" in
+ 				openssh) original_package="openssh-server";;
+ 				ncurses-utils) original_package="ncurses-bin";;
+ 				*) original_package=$package;;
+ 			esac
+ 		fi
+  	
+		if [[ " ${essential_packages[*]} " == *" $original_package "* ]]; then
+			msg "err" "Pacote essêncial detectado, ignorando remoção de $original_package."
 			continue
 		fi
   	
-    	if dpkg -s "$package" &> /dev/null; then
-    		msg "info" "Removendo pacote $package..."
+    	if dpkg -s "$original_package" &> /dev/null; then
+    		msg "info" "Removendo pacote $original_package..."
     		
-    		if apt remove -y "$package"; then
-    			msg "ok" "Removido: '$package'."
+    		if apt remove -y "$original_package"; then
+    			msg "ok" "Removido: '$original_package'."
     		else
-				msg "err" "Falha ao remover o pacote '$package'."
+				msg "err" "Falha ao remover o pacote '$original_package'."
 			fi
     		
 	    else  	
-    		msg "warn" "O pacote '$package' já foi removido antes."
+    		msg "warn" "O pacote '$original_package' já foi removido antes."
    		fi
   	done
 
