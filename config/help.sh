@@ -40,3 +40,15 @@ showHelpInteractive() {
     printf "  %-22s %s\n" "exit, quit"        "Sair do programa"
     echo
 }
+
+
+showHelpSetup() {
+	echo -e "Uso: $(basename "$0") [opção]\n"
+	
+	printf "  %-22s %s\n" "--install" "Configura o DataSocial para rodar de forma global"
+	printf "  %-22s %s\n" "--uninstall" "Remove o DataSocial do PATH"
+	printf "  %-22s %s\n" "--install-req" "Instala apenas os pacotes necessários para rodar o DataSocial"
+	printf "  %-22s %s\n" "--uninstall-req" "Remove apenas os pacotes instalados pelo install-req"
+	printf "  %-22s %s\n" "--install-ngrok" "Instala o serviço de túnel Ngrok"
+	printf "  %-22s %s\n" "--install-cloudflared" "Instala o serviço de túnel Cloudflared"
+}
