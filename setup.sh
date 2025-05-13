@@ -234,5 +234,5 @@ case "$1" in
   	--uninstall-req) uninstall_req;;
   	--install-ngrok) install_ngrok;;
   	--install-cloudflared) install_cloudflared;;
-  	*) usage;;
+  	*) showHelpSetup;;
 esac
