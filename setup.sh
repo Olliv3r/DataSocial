@@ -119,9 +119,9 @@ install() {
 			esac
 		fi
   		
-    	if ! dpkg -s "$original_package" &> /dev/null; then
+    	if ! command -v "$original_package" > /dev/null 2>&1; then
     		msg "info" "Instalando '$original_package'..."
-    		apt install "$original_package" -yq || {
+    		apt install "$original_package" -y || {
     			msg "err" "Falha ao tentar instalar o pacote '$original_package'."
     			continue
     		}
@@ -157,7 +157,7 @@ uninstall() {
 			continue
 		fi
   	
-    	if dpkg -s "$original_package" &> /dev/null; then
+    	if command -v "$original_package" > /dev/null 2>&1; then
     		msg "info" "Removendo pacote $original_package..."
     		
     		if apt remove -y "$original_package"; then

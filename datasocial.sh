@@ -256,6 +256,8 @@ checkST() {
 listenServerLocalhost() {
 	showBanner
 
+	tput civis
+
 	local link=
 	local serviceSelected="$1"
 
@@ -272,11 +274,12 @@ listenServerLocalhost() {
 
 	killAllProcess
 
-	msg "info" "URLs para enviar para o alvo:\n" "is_prefix"
+	msg "ok" "URLs para enviar para o alvo:\n" "is_prefix"
 
 	php -S "$host:$port" -t "$BASE_DIR/$www" > $BASE_DIR/logs/php.log 2>&1 & echo $! > $BASE_DIR/pids/php.pid
 	link=$(waitTunnelLink "$BASE_DIR/logs/php.log" "http://[-1-9a-z:]*")
 	showTunnelLink "localhost" "$link"
+	tput cnorm
 }
 
 # Aguarda o link ser gerado no log especificado
@@ -289,17 +292,39 @@ waitTunnelLink() {
 	local log_file="$1"
 	local regex="$2"
 	local link=""
+
+	spin() {
+		local spinner_chars=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+		
+		while true; do
+			for c in "${spinner_chars[@]}"; do
+				printf "\r$(msg "info" "Aguardando link %s" "is_prefix")" "$c" > /dev/tty
+				sleep 0.1
+			done
+		done
+	}
+
+	spin &	
+
+	local spin_pid=$!
+	disown
 	
 	for i in {1..15}; do
 		link=$(grep -oP "$regex" "$log_file")
 
 		if [[ -n "$link" ]]; then
+			kill "$spin_pid" &>/dev/null
+			wait "$spin_pid" 2>/dev/null
+			printf "\r" > /dev/tty
 			echo "$link"
 			return 0
 		fi
 		sleep 1
 	done
 
+	kill "$spin_pid" &>/dev/null
+	wait "$spin_pid" 2>/dev/null
+	printf "\r" > /dev/tty
 	echo ""
 	return 1
 }	
@@ -345,6 +370,8 @@ listenServerPublic() {
 	local link=
 	local tunnelSelected="$1"
 
+	tput civis
+
 	if ! checkST "tunnels" "$tunnelSelected"; then
 		msg "err" "Túnel $tunnelSelected inválido." "is_prefix"
 		exit 1
@@ -359,7 +386,7 @@ listenServerPublic() {
 		ssh)
 			checkAuthAccount "ssh"
 		
-			ssh -i $HOME/.ssh/id_rsa -R 80:localhost:$port ssh.localhost.run > $BASE_DIR/logs/ssh.log 2>&1 & echo $! > $BASE_DIR/pids/ssh.pid
+			ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no -R 80:localhost:$port ssh.localhost.run > $BASE_DIR/logs/ssh.log 2>&1 & echo $! > $BASE_DIR/pids/ssh.pid
 			
 			link=$(waitTunnelLink "$BASE_DIR/logs/ssh.log" "https://[a-z0-9]+\.lhr\.life" | head -n 1)
 			;;
@@ -377,6 +404,7 @@ listenServerPublic() {
 	esac
 
 	showTunnelLink "$tunnelSelected" "$link"
+	tput cnorm
 }	
 
 # Aguarda a criação do arquivo de IP e exibe o IP da nova conexão quando detectado.
